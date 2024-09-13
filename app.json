@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "KalTrack",
+    "platforms": ["ios", "android"],
     "slug": "KalTrack",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,8 +13,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+    
+
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.KalTrack.app" 
     },
     "android": {
       "adaptiveIcon": {
