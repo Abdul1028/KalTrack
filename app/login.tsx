@@ -9,6 +9,7 @@ import { Redirect } from 'expo-router';
 
 const { width, height } = Dimensions.get("window");
 
+
 export const useWarmUpBrowser = () => {
   useEffect(() => {
     // Warm up the android browser to improve UX
@@ -22,9 +23,7 @@ export const useWarmUpBrowser = () => {
 WebBrowser.maybeCompleteAuthSession();
 
 export default function login() {
-    if(Platform.OS != "web"){
   useWarmUpBrowser();
-    }
 
   const { signOut } = useAuth();
 
