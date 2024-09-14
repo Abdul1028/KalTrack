@@ -1,7 +1,7 @@
 
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect } from "react";
-import { Pressable, Text, View, Image, Dimensions, StyleSheet, Button } from "react-native";
+import { Pressable, Text, View, Image, Dimensions, StyleSheet, Button, Platform } from "react-native";
 import { SignedIn, SignedOut, useAuth, useOAuth, useUser } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
 import { Redirect } from 'expo-router';
@@ -22,7 +22,9 @@ export const useWarmUpBrowser = () => {
 WebBrowser.maybeCompleteAuthSession();
 
 export default function login() {
+    if(Platform.OS != "web"){
   useWarmUpBrowser();
+    }
 
   const { signOut } = useAuth();
 
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
   },
   getStartedButton: {
     padding: 15,
-    width: width * 0.5,
+    width: width * 0.7,
     textAlign: 'center',
     alignItems: 'center',
     alignContent: 'center',

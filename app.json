@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "KalTrack",
-    "platforms": ["ios", "android"],
+    "platforms": ["ios", "android","web"],
     "slug": "KalTrack",
     "version": "1.0.0",
     "orientation": "portrait",
