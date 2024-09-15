@@ -5,6 +5,7 @@ import { Pressable, Text, View, Image, Dimensions, StyleSheet, Button, Platform 
 import { SignedIn, SignedOut, useAuth, useOAuth, useUser } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
 import { Redirect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 
 const { width, height } = Dimensions.get("window");
@@ -26,15 +27,6 @@ export default function login() {
   useWarmUpBrowser();
 
   const { signOut } = useAuth();
-
-  const handleLogout = async () => {
-    try {
-      await signOut();
-      alert("You have been logged out!");
-    } catch (error) {
-      console.error("Error logging out: ", error);
-    }
-  };
 
   const { user } = useUser();
   console.log("from index: " + user?.emailAddresses);
@@ -84,22 +76,17 @@ export default function login() {
 
   return (
     <View style={styles.container}>
-      <Image 
-        source={require("../assets/images/APPLOGO.png")} 
-        style={styles.logo} 
-      />
+  
       <Pressable>
         <View style={styles.infoBox}>
           <Text style={styles.title}>
-            Maintain your calories and Stay Healthy
-          </Text>
-          <Text style={styles.description}>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit. Odio, neque velit explicabo officia eveniet suscipit sed assumenda vero ut delectus? Ducimus eveniet nesciunt veritatis voluptate eius commodi nihil, velit neque.
+           Login to Continue
           </Text>
           <Pressable onPress={onGooglePress} style={styles.getStartedButton}>
             <Text style={styles.buttonText}>Get Started With Google</Text>
           </Pressable>
-          <Pressable onPress={onApplePress} style={[styles.getStartedButton, styles.appleButton]}>
+
+          <Pressable onPress={onApplePress} style={[styles.getStartedButton, styles.appleButton]}>         
             <Text style={styles.buttonText}>Get Started With Apple</Text>
           </Pressable>
         </View>
@@ -121,7 +108,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     marginTop: height * 0.1,
-    height: height * 0.3,
+    height: height * 1,
     width: width * 0.8,
     borderRadius: 20,
     resizeMode: 'contain',
@@ -130,16 +117,12 @@ const styles = StyleSheet.create({
     marginTop: 20,
     alignItems: 'center',
     width: width * 0.9,
-    borderWidth: 2,
-    borderColor: 'black',
-    borderRadius: 30,
     padding: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: '500',
     textAlign: 'center',
-    letterSpacing: 1.5,
   },
   description: {
     fontSize: 15,

@@ -3,6 +3,7 @@ import { ClerkProvider, ClerkLoaded, SignedIn, SignedOut } from '@clerk/clerk-ex
 import { Slot } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import Home from "./setup";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 
 const tokenCache = {
@@ -42,6 +43,7 @@ export default function RootLayout() {
   return (
     <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
       <ClerkLoaded>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack>
       <Stack.Screen name="index" options={
         {
@@ -73,6 +75,7 @@ export default function RootLayout() {
         }
       } />
     </Stack>
+    </GestureHandlerRootView>
 
     </ClerkLoaded>
     </ClerkProvider>
