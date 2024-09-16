@@ -62,8 +62,7 @@ export default function RootLayout() {
           headerShown:false,
         }
       } />
-
-<Stack.Screen name="dashboard" options={
+<Stack.Screen name="nutritionval" options={
         {
           headerShown:false,
         }
