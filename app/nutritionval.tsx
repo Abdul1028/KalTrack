@@ -6,6 +6,62 @@ import { StyleSheet, Image, Text, View, Dimensions, Pressable, TouchableOpacity 
 
 const { width } = Dimensions.get("window");
 
+import * as Notifications from 'expo-notifications';
+import Constants from "expo-constants";
+
+// Define the notification actions
+const notificationActions = [
+  {
+    identifier: 'RESET_ACTION',
+    buttonTitle: 'Okay Reset',
+    options: { opensAppToForeground: true },  // Ensures the app opens
+  },
+  {
+    identifier: 'NO_ACTION',
+    buttonTitle: 'No',
+    options: { opensAppToForeground: false },  // The app stays in the background
+  },
+];
+
+// Request permission and schedule the notification with actions
+export async function scheduleNotificationWithActions() {
+  let token;
+  const { status } = await Notifications.requestPermissionsAsync();
+  if (status !== 'granted') {
+    alert('Permission to send notifications was denied');
+    return;
+  }
+
+
+  
+// Schedule the notification with action buttons
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "Calorie Reminder",
+      body: "Do you want to reset your calories?",
+      sound: true,
+    },
+    trigger: {
+      hour: 20,      // 5 PM
+      minute: 40,     // Time for daily notification
+      repeats: true, // Repeat every day
+    },
+  });
+}
+
+// Set up the notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
+
+
+
+
 export default function nutritionval() {
   const item = useLocalSearchParams();
   
@@ -13,6 +69,31 @@ export default function nutritionval() {
     if (isNaN(num)) return '0.00'; // Handle non-numeric values
     return (Math.round(num * 100) / 100).toFixed(2);
   };
+
+  const getToken = async ()=>{
+    let token;
+    try {
+      console.log("token called: ")
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
+        console.log(projectId);
+      if (!projectId) {
+        throw new Error('Project ID not found');
+      }
+      token = (
+        await Notifications.getExpoPushTokenAsync({
+          projectId,
+        })
+      ).data;
+      console.log(token);
+    } catch (e) {
+      token = `${e}`;
+    }
+  }
+
+
+
+
 
   return (
     <View style={styles.container}>
@@ -69,7 +150,7 @@ export default function nutritionval() {
 
       {/* Consume Button */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.consumeButton} onPress={() => { /* Handle button press */ }}>
+        <TouchableOpacity style={styles.consumeButton} onPress={getToken}  >
           <Text style={styles.consumeButtonText}>Consume</Text>
         </TouchableOpacity>
       </View>

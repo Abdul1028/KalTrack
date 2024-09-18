@@ -4,7 +4,11 @@ import { Slot } from 'expo-router'
 import * as SecureStore from 'expo-secure-store'
 import Home from "./setup";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useEffect } from "react";
+import { scheduleNotificationWithActions } from "./nutritionval";
 
+import { Alert, View, Text } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 const tokenCache = {
   async getToken(key: string) {
@@ -40,6 +44,37 @@ if (!publishableKey) {
 
 
 export default function RootLayout() {
+  useEffect(() => {
+    // Schedule the notification with actions when the app loads
+    scheduleNotificationWithActions();
+     // Add a notification response listener
+     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      // Handle the notification click
+      handleNotificationClick(response);
+    });
+
+    // Cleanup subscription on unmount
+    return () => subscription.remove();
+    
+  }, 
+  
+  []);
+
+  // // Function to handle notification click
+  // function handleNotificationClick(response :any) {
+  //   const { notification } = response;
+  //   const actionIdentifier = response.actionIdentifier;
+
+  //   // Show an alert box
+  //   Alert.alert(
+  //     "Notification Clicked",
+  //     notification.request.content.body,
+  //     [
+  //       { text: "OK", onPress: () => console.log("OK Pressed") },
+  //       { text: "Cancel", onPress: () => console.log("Cancel Pressed") }
+  //     ]
+  //   );
+  // }
   return (
     <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
       <ClerkLoaded>
@@ -73,6 +108,8 @@ export default function RootLayout() {
           headerShown:false,
         }
       } />
+
+      
     </Stack>
     </GestureHandlerRootView>
 

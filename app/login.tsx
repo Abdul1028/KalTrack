@@ -176,7 +176,7 @@ export default function Login() {
   const onGooglePress = useCallback(async () => {
     try {
       const oauthResponse = await startGoogleOAuthFlow({
-        redirectUrl: Linking.createURL('/home', { scheme: 'myapp' }),
+        redirectUrl: Linking.createURL('/setup', { scheme: 'myapp' }),
       });
 
       const { createdSessionId, setActive } = oauthResponse || {};

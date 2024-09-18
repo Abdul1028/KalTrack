@@ -339,7 +339,6 @@ export default function Setup() {
         }
       }
     };
-
     checkUserData();
   }, [user]);
 
@@ -404,6 +403,7 @@ export default function Setup() {
           bmi: calculatedBmi,
           bmr: calculatedBmr,
           maintenanceCalories: calculatedMaintenanceCalories,
+          caloriesConsumed:0,
         }, { merge: true });
 
         console.log("Data inserted");
