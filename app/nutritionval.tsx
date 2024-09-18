@@ -42,8 +42,8 @@ export async function scheduleNotificationWithActions() {
       sound: true,
     },
     trigger: {
-      hour: 20,      // 5 PM
-      minute: 40,     // Time for daily notification
+      hour: 21,      // 5 PM
+      minute: 0,     // Time for daily notification
       repeats: true, // Repeat every day
     },
   });
