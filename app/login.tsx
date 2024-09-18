@@ -146,7 +146,7 @@ import { useCallback, useEffect } from "react";
 import { Pressable, Text, View, Image, Dimensions, StyleSheet, Platform } from "react-native";
 import { SignedIn, SignedOut, useAuth, useOAuth, useUser } from '@clerk/clerk-expo';
 import * as Linking from 'expo-linking';
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { FontAwesome } from '@expo/vector-icons'; // For Google logo
 
@@ -195,7 +195,7 @@ export default function Login() {
   const onApplePress = useCallback(async () => {
     try {
       const oauthResponse = await startAppleOAuthFlow({
-        redirectUrl: Linking.createURL('/home', { scheme: 'myapp' }),
+        redirectUrl: Linking.createURL('/setup', { scheme: 'myapp' }),
       });
 
       const { createdSessionId, setActive } = oauthResponse || {};

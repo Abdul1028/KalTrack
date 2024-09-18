@@ -50,7 +50,7 @@ export default function RootLayout() {
      // Add a notification response listener
      const subscription = Notifications.addNotificationResponseReceivedListener(response => {
       // Handle the notification click
-      handleNotificationClick(response);
+      // handleNotificationClick(response);
     });
 
     // Cleanup subscription on unmount

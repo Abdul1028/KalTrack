@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, StyleSheet, FlatList, Text, TouchableOpacity, Image, ActivityIndicator, VirtualizedList, Alert } from 'react-native';
-import RNPickerSelect from 'react-native-picker-select';
+// import RNPickerSelect from 'react-native-picker-select';
 import axios from 'axios';
 import { withDecay } from 'react-native-reanimated';
 import { green } from 'react-native-reanimated/lib/typescript/reanimated2/Colors';
@@ -97,7 +97,7 @@ const home = () => {
           onChangeText={(text) => setSearchQuery(text)}
         />
         <View style={{width:"20%" , height:50,borderColor:"black",borderRadius:25,borderWidth:1}}>
-        <RNPickerSelect
+        {/* <RNPickerSelect
           onValueChange={(value) => setSelectedWeight(value)}
           placeholder={{color:"black",label:"gms", }}
           items={[
@@ -113,7 +113,7 @@ const home = () => {
             { label: '1000g', value: 1000 },
           ]}
           style={pickerSelectStyles}
-        />
+        /> */}
         </View>
       </View>
 
