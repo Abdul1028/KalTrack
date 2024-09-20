@@ -53,8 +53,8 @@ export async function scheduleMidnightNotification(id:any) {
     },
 
     trigger: {
-      hour: 4,      // 5 PM
-      minute: 30,     // Time for daily notification
+      hour: 23,      // 5 PM
+      minute: 59,     // Time for daily notification
       repeats: true, // Repeat every day
     },
   });
