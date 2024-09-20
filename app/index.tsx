@@ -1,6 +1,6 @@
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View ,Image} from 'react-native'
+import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native'
 import React, { useRef, useState } from 'react'
-import { SignedIn, SignedOut } from '@clerk/clerk-expo'
+import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
 import login from './login'
 import { Redirect, router } from 'expo-router'
 import Swiper from 'react-native-swiper'
@@ -8,65 +8,71 @@ import Swiper from 'react-native-swiper'
 import CustomButton from "./components/CustomButton"
 import { onboarding } from "./constants";
 
+import Setup from './setup'
+import { scheduleNotificationWithActions } from './nutritionval'
+
 const index = () => {
   const swiperRef = useRef<Swiper>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const {user} = useUser();
 
   const isLastSlide = activeIndex === onboarding.length - 1;
-  return(
+  if(!user){
+  return (
+    <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+        onPress={() => {
+          router.navigate("/login");
+        }}
+        style={styles.skipButtonContainer}
+      >
+        <Text style={styles.skipButtonText}>Skip</Text>
+      </TouchableOpacity>
 
-  <SafeAreaView style={styles.container}>
-  <TouchableOpacity
-    onPress={() => {
-      router.navigate("/login");
-    }}
-    style={styles.skipButtonContainer}
-  >
-    <Text style={styles.skipButtonText}>Skip</Text>
-  </TouchableOpacity>
+      <Swiper
+        ref={swiperRef}
+        loop={false}
+        dot={<View style={styles.swiperDot} />}
+        activeDot={<View style={styles.swiperActiveDot} />}
+        onIndexChanged={(index) => setActiveIndex(index)}
+      >
+        {onboarding.map((item) => (
+          <View key={item.id} style={styles.slideContainer}>
+            <Image
+              source={item.image}
+              style={styles.image}
+            />
 
-  <Swiper
-    ref={swiperRef}
-    loop={false}
-    dot={<View style={styles.swiperDot} />}
-    activeDot={<View style={styles.swiperActiveDot} />}
-    onIndexChanged={(index) => setActiveIndex(index)}
-  >
-    {onboarding.map((item) => (
-      <View key={item.id} style={styles.slideContainer}>
-        <Image
-          source={item.image}
-          style={styles.image}
-        />
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>
+                {item.title}
+              </Text>
+            </View>
+            <Text style={styles.description}>
+              {item.description}
+            </Text>
+          </View>
+        ))}
+      </Swiper>
 
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>
-            {item.title}
-          </Text>
-        </View>
-        <Text style={styles.description}>
-          {item.description}
-        </Text>
-      </View>
-    ))}
-  </Swiper>
-
-  <CustomButton
-    title={isLastSlide ? "Get Started" : "Next"}
-    onPress={() =>
-      isLastSlide
-        ? router.navigate("/login")
-        : swiperRef.current?.scrollBy(1)
-    }
-    style={styles.button}
-  />
-</SafeAreaView>
+      <CustomButton
+        title={isLastSlide ? "Get Started" : "Next"}
+        onPress={() =>
+          isLastSlide
+            ? router.navigate("/login")
+            : swiperRef.current?.scrollBy(1)
+        }
+        style={styles.button}
+      />
+    </SafeAreaView>
   )
-
-
+}
+else{
+  return <Setup/>
 }
 
+}
 export default index
 const styles = StyleSheet.create({
   container: {
@@ -134,7 +140,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   button: {
-    color:"orange",
+    color: "orange",
     width: '91%',
     marginTop: 20,
     marginBottom: 10,

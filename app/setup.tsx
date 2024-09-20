@@ -22,7 +22,7 @@ export default function Setup() {
   const [bmr, setBmr] = useState<number | null>(null); // State for BMR
   const [maintenanceCalories, setMaintenanceCalories] = useState<number | null>(null); // State for maintenance calories
   const [loading, setLoading] = useState<boolean>(true); // State to manage loading
-
+  const [goal, setGoal] = useState<string>('weight loss'); // New state for goal
   const navigation = useNavigation();
   const router = useRouter();
 
@@ -74,7 +74,7 @@ export default function Setup() {
   
 
   const handleNextStep = async () => {
-    if (currentStep === 5) {
+    if (currentStep === 6) {
       // Final step, handle BMI, BMR, and maintenance calories calculations
       if (!user) return;
 
@@ -133,6 +133,7 @@ export default function Setup() {
           activityLevel,
           bmi: calculatedBmi,
           bmr: calculatedBmr,
+          userGoal:goal,
           maintenanceCalories: calculatedMaintenanceCalories,
           caloriesConsumed:0,
         }, { merge: true });
@@ -165,7 +166,7 @@ export default function Setup() {
     <View style={styles.container}>
       {currentStep === 1 && (
         <>
-          <Text style={styles.label}>What's the age of the user?</Text>
+          <Text style={styles.label}>What's your age?</Text>
           <View style={styles.combinedInput} >
           <TextInput
             style={styles.input}
@@ -232,7 +233,7 @@ export default function Setup() {
       )}
       {currentStep === 3 && (
         <>
-          <Text style={styles.label}>What's the weight of the user?</Text>
+          <Text style={styles.label}>What's your weight?</Text>
           <View style={styles.combinedInput}>
           <TextInput
             style={styles.input}
@@ -264,7 +265,7 @@ export default function Setup() {
       )}
       {currentStep === 4 && (
         <>
-          <Text style={styles.label}>What's the height of the user?</Text>
+          <Text style={styles.label}>What's your height?</Text>
           <View style={styles.combinedInput}>
           <TextInput
             style={styles.input}
@@ -330,7 +331,7 @@ export default function Setup() {
           </RadioButton.Group>
           <View style={styles.navigationButtonContainer}>
           <Button
-            title="Calculate"
+            title="Back"
             onPress={handleNextStep}
             color="orange"
           />
@@ -340,9 +341,33 @@ export default function Setup() {
             color="orange"
           />
           </View>
-          
         </>
       )}
+
+{currentStep === 6 && ( // New step for goal
+        <>
+          <Text style={styles.label}>What is your goal?</Text>
+          <RadioButton.Group onValueChange={setGoal} value={goal}>
+            <View style={styles.radioContainer}>
+              <View style={styles.radioButton}>
+              <RadioButton value="weight loss" color='orange' />
+              </View>
+              <Text style={styles.radioButtonText}>Weight Loss</Text>
+            </View>
+            <View style={styles.radioContainer}>
+            <View style={styles.radioButton}>
+              <RadioButton value="weight gain" color='orange' />
+              </View>
+              <Text style={styles.radioButtonText}>Weight Gain</Text>
+            </View>
+          </RadioButton.Group>
+          <View style={styles.navigationButtonContainer}>
+            <Button title="Calculate" onPress={handleNextStep} color="orange" />
+            <Button title="Back" onPress={handleBackStep} color="orange" />
+          </View>
+        </>
+      )}
+
     </View>
   );
 }

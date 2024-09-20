@@ -371,8 +371,8 @@ export default function Account() {
 
       {/* Water Tracker Section */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionText}>Water Tracker</Text>
-        <Text style={styles.sectionValue}>Enabled</Text>
+        <Text style={styles.sectionText}>Goal</Text>
+        <Text style={styles.sectionValue}>{userData['userGoal']}</Text>
       </View>
 
       {/* Settings Section */}
