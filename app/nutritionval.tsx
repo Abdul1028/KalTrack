@@ -62,10 +62,8 @@ export async function scheduleMidnightNotification(id:any) {
 
 
 export async function getNotificationBody(userId: any) {
-  // Get current date in DD-MM-YYYY format
   const currentDate = moment().format('DD-MM-YYYY');
 
-  // Reference to user's main document (to get maintenanceCalories)
   const userDocRef = doc(db, 'users', userId);
   const userDocSnap = await getDoc(userDocRef);
 
