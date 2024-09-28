@@ -331,7 +331,7 @@ export default function Setup() {
           </RadioButton.Group>
           <View style={styles.navigationButtonContainer}>
           <Button
-            title="Back"
+            title="Next"
             onPress={handleNextStep}
             color="orange"
           />
