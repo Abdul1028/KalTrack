@@ -8,7 +8,8 @@ import {
   ScrollView, 
   Dimensions,
   Platform,
-  Alert
+  Alert,
+  Switch
 } from 'react-native';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,9 @@ import Animated, {
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 import { useRouter } from 'expo-router';
+import * as Notifications from 'expo-notifications';
+import Slider from '@react-native-community/slider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 375;
@@ -86,9 +90,13 @@ export default function Account() {
   const { signOut } = useAuth();
   const router = useRouter();
   const [userDetails, setUserDetails] = useState<any>(null);
+  const [isWaterReminderOn, setIsWaterReminderOn] = useState(false);
+  const [showReminderSettings, setShowReminderSettings] = useState(false);
+  const [reminderInterval, setReminderInterval] = useState(2);
 
   useEffect(() => {
     fetchUserDetails();
+    loadWaterReminderPreferences();
   }, [user]);
 
   const fetchUserDetails = async () => {
@@ -100,6 +108,17 @@ export default function Account() {
     }
   };
 
+  const loadWaterReminderPreferences = async () => {
+    try {
+      const reminderOn = await AsyncStorage.getItem('waterReminderOn');
+      const interval = await AsyncStorage.getItem('waterReminderInterval');
+      
+      if (reminderOn) setIsWaterReminderOn(JSON.parse(reminderOn));
+      if (interval) setReminderInterval(JSON.parse(interval));
+    } catch (error) {
+      console.log('Error loading preferences:', error);
+    }
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -147,6 +166,52 @@ export default function Account() {
     </TouchableOpacity>
   );
 
+  const scheduleWaterReminders = async () => {
+    try {
+      // Request permissions
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please enable notifications to use this feature.');
+        return;
+      }
+
+      // Cancel existing reminders
+      await Notifications.cancelAllScheduledNotificationsAsync();
+
+      if (isWaterReminderOn) {
+        // Schedule new reminders
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "💧 Water Reminder",
+            body: "Time to drink water! Stay hydrated for better health.",
+            sound: true,
+          },
+          trigger: {
+            seconds: reminderInterval * 3600, // Convert hours to seconds
+            repeats: true,
+          },
+        });
+
+        // Save preferences
+        await AsyncStorage.setItem('waterReminderOn', JSON.stringify(true));
+        await AsyncStorage.setItem('waterReminderInterval', JSON.stringify(reminderInterval));
+      }
+    } catch (error) {
+      console.log('Error scheduling reminders:', error);
+      Alert.alert('Error', 'Failed to set water reminders');
+    }
+  };
+
+  const toggleWaterReminder = async (value: boolean) => {
+    setIsWaterReminderOn(value);
+    if (!value) {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      await AsyncStorage.setItem('waterReminderOn', JSON.stringify(false));
+    } else {
+      setShowReminderSettings(true);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <AccountHeader />
@@ -180,6 +245,49 @@ export default function Account() {
           {renderSettingItem('shield-checkmark-outline', 'Privacy', () => {})}
           {renderSettingItem('help-circle-outline', 'Help & Support', () => {})}
           {renderSettingItem('information-circle-outline', 'About', () => {})}
+          <View style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Ionicons name="water-outline" size={22} color="#666" />
+              </View>
+              <Text style={styles.settingText}>Water Reminder</Text>
+            </View>
+            <Switch
+              value={isWaterReminderOn}
+              onValueChange={toggleWaterReminder}
+              trackColor={{ false: '#767577', true: '#FF6B6B' }}
+              thumbColor={isWaterReminderOn ? '#ff4444' : '#f4f3f4'}
+            />
+          </View>
+          {showReminderSettings && isWaterReminderOn && (
+            <Animated.View 
+              entering={FadeInDown}
+              style={styles.reminderSettings}
+            >
+              <Text style={styles.reminderText}>
+                Remind every {reminderInterval} hours
+              </Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={2}
+                maximumValue={6}
+                step={1}
+                value={reminderInterval}
+                onValueChange={setReminderInterval}
+                onSlidingComplete={() => {
+                  scheduleWaterReminders();
+                  setShowReminderSettings(false);
+                }}
+                minimumTrackTintColor="#FF6B6B"
+                maximumTrackTintColor="#ddd"
+                thumbTintColor="#FF6B6B"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabel}>2h</Text>
+                <Text style={styles.sliderLabel}>6h</Text>
+              </View>
+            </Animated.View>
+          )}
         </View>
 
         <TouchableOpacity 
@@ -356,5 +464,31 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  reminderSettings: {
+    backgroundColor: '#f8f8f8',
+    padding: 15,
+    marginHorizontal: 20,
+    borderRadius: 15,
+    marginTop: 10,
+  },
+  reminderText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  slider: {
+    width: '100%',
+    height: 40,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  sliderLabel: {
+    fontSize: 14,
+    color: '#666',
   },
 });
