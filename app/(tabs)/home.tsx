@@ -204,6 +204,26 @@ const Home = () => {
     </TouchableOpacity>
   );
 
+  const renderMealType = ({ item }: { item: MealType }) => (
+    <TouchableOpacity
+      style={styles.mealTypeCard}
+      onPress={() => router.push({
+        pathname: "/addMeal",
+        params: { mealType: item.id }
+      })}
+    >
+      <LinearGradient
+        colors={item.gradient}
+        style={styles.mealGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Ionicons name={item.icon} size={24} color="white" />
+        <Text style={styles.mealTypeLabel}>{item.label}</Text>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <Animated.View style={[styles.header, { transform: [{ translateY: headerY }] }]}>
@@ -492,6 +512,30 @@ const styles = StyleSheet.create({
   },
   flatListContainer: {
     marginHorizontal: -SCREEN_WIDTH * 0.02, // Negative margin to offset parent padding
+  },
+  mealTypeCard: {
+    marginHorizontal: SCREEN_WIDTH * 0.015, // Reduce horizontal margin
+    alignItems: 'center',
+    width: isTablet ? 
+      SCREEN_WIDTH * 0.15 : // Smaller width for tablets
+      isSmallDevice ? 
+        SCREEN_WIDTH * 0.22 : // Smaller width for small devices
+        SCREEN_WIDTH * 0.2,   // Regular width for normal devices
+    paddingVertical: isSmallDevice ? 8 : 10,
+  },
+  mealGradient: {
+    width: isTablet ? 80 : isSmallDevice ? 48 : 56,
+    height: isTablet ? 80 : isSmallDevice ? 48 : 56,
+    borderRadius: isTablet ? 40 : isSmallDevice ? 24 : 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: isSmallDevice ? 6 : 8,
+  },
+  mealTypeLabel: {
+    fontSize: isTablet ? 16 : isSmallDevice ? 12 : 14,
+    color: '#333',
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 
