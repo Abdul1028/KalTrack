@@ -1,409 +1,199 @@
-// import { useAuth, useUser } from "@clerk/clerk-expo"
-// import { useURL } from "expo-linking"
-// import React from "react"
-// import { StyleSheet, Image, Text, View, Pressable } from "react-native"
-// import { Ionicons } from '@expo/vector-icons';
-
-// export default function account() {
-//   const {user} = useUser();
-
-//   const { signOut } = useAuth();
-
-//   const handleLogout = async () => {
-//       console.log("logged out");
-//     try {
-//       await signOut();
-//       alert("You have been logged out!");
-      
-//     } catch (error) {
-//       console.error("Error logging out: ", error);
-//     }
-//   };
-
-//   return (
-//     <View style={styles.container}>
-//       {/* Top Navigation with Back Arrow and Profile Title */}
-//       <View style={styles.header}>
-//         <Ionicons style={styles.backIcon} name="arrow-back" size={24} />
-//         <Text style={styles.profileTitle}>Profile</Text>
-//       </View>
-
-//       {/* Profile Information Section */}
-//       <View style={styles.profileInfo}>
-//         <Image
-//           style={styles.profilePicture}
-//           source={{
-//             uri: user?.imageUrl,
-//           }}
-//         />
-//         <Text style={styles.profileName}>{user?.fullName}</Text>
-//         <Text style={styles.profileEmail}>{user?.emailAddresses[0].emailAddress}</Text>
-//       </View>
-
-//       {/* Me Section (Green Active Card) */}
-//       <View style={styles.sectionCardGreen}>
-//         <Text style={styles.sectionText}>Me</Text>
-//         <Ionicons
-//           style={styles.icon}
-//           size={20}
-//           name="arrow-forward"
-//         />
-//       </View>
-
-//       {/* Maintenance Calorie Section */}
-//       <View style={styles.sectionCard}>
-//         <Text style={styles.sectionText}>Maintainance Calorie</Text>
-//         <Text style={styles.sectionValue}>3400 Cal</Text>
-//       </View>
-
-//       {/* BMI Section */}
-//       <View style={styles.sectionCard}>
-//         <Text style={styles.sectionText}>BMI</Text>
-//         <Text style={styles.sectionValue}>Kilograms</Text>
-//       </View>
-
-//       {/* Water Tracker Section */}
-//       <View style={styles.sectionCard}>
-//         <Ionicons
-//         name="water"
-//         size={24}
-//         />
-//         <Text style={styles.sectionText}>Water Tracker</Text>
-//         <Text style={styles.sectionValue}>Enabled</Text>
-//       </View>
-
-//       {/* Settings Section */}
-//       <View style={styles.sectionCard} >
-//       <Text style={styles.sectionText}>Settings</Text>
-//         <Ionicons
-//           style={styles.icon}
-//           name="settings"
-//           size={24}
-//           onPress={()=>{console.log("heyy")}}
-//         />
-//       </View>
-
-//       {/* Logout Section */}
-//       <Pressable onPress={()=>{
-//         console.log("heyy");
-//       }}
-//       >
-//       <View style={styles.sectionCardGreen}>
-//         <Text style={styles.sectionText}>Logout</Text>
-//         <Ionicons
-//           style={styles.icon}
-//           size={24}
-//           name="log-out"
-//         />
-//       </View>
-//       </Pressable>
-
-//     </View>
-//   )
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     marginTop:30,
-//     paddingHorizontal: 20,
-
-//   },
-//   header: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     justifyContent:"flex-start",
-//     marginTop: 20,
-//   },
-//   backIcon: {
-//     width: 24,
-//     height: 24,
-//   },
-//   profileTitle: {
-//     fontSize: 18,
-//     fontWeight: "500",
-//     color: "#0D1220",
-//     marginLeft: 16,
-//   },
-//   profileInfo: {
-//     alignItems: "center",
-//     marginVertical: 20,
-//   },
-//   profilePicture: {
-//     width: 90,
-//     height: 90,
-//     borderRadius: 45,
-//   },
-//   profileName: {
-//     fontSize: 20,
-//     fontWeight: "500",
-//     color: "#0D1220",
-//     marginTop: 10,
-//   },
-//   profileEmail: {
-//     fontSize: 16,
-//     color: "orange",
-//   },
-//   sectionCardGreen: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     backgroundColor: "#FFA500",
-//     padding: 16,
-//     borderRadius: 10,
-//     marginVertical: 8,
-//   },
-//   sectionCard: {
-//     flexDirection: "row",
-//     justifyContent: "space-between",
-//     backgroundColor: "#FFD580",
-//     padding: 16,
-//     borderRadius: 10,
-//     marginVertical: 8,
-//   },
-
-
-
-//   sectionText: {
-//     fontSize: 16,
-//     color: "black",
-//     fontWeight:"500",
-//   },
-//   sectionValue: {
-//     fontSize: 15,
-//     color: "#FF8C00",
-//   },
-
-//   newsectionValue: {
-//     fontSize: 14,
-//     color: "#35CC8C",
-//   },
-
-
-
-
-//   sectionValueGreen: {
-//     fontSize: 14,
-//     color: "#35CC8C",
-//   },
-//   icon: {
-//     width: 24,
-//     height: 24,
-//   },
-//   logoutSection: {
-//     flexDirection: "row",
-//     justifyContent: "flex-start",
-//     alignItems: "center",
-//     marginVertical: 20,
-//   },
-//   logoutText: {
-//     fontSize: 14,
-//     color: "#CB2030",
-//     marginLeft: 12,
-//   },
-// })
-
-
-import { useAuth, useUser } from "@clerk/clerk-expo";
-import React, { useEffect, useState } from "react";
-import { StyleSheet, Image, Text, View, Pressable, Alert, Platform } from "react-native";
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  Image, 
+  ScrollView, 
+  Dimensions,
+  Platform,
+  Alert
+} from 'react-native';
+import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from "expo-router";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "@/firebaseConfig";
-import { ScrollView } from "react-native-gesture-handler";
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  withTiming,
+  withSpring,
+  useAnimatedStyle,
+  useSharedValue
+} from 'react-native-reanimated';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebaseConfig';
+import { useRouter } from 'expo-router';
+
+const { width, height } = Dimensions.get('window');
+const isSmallDevice = width < 375;
+
+const AccountHeader = () => {
+  const { user } = useUser();
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(50);
+
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 500 });
+    translateY.value = withSpring(0);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }]
+  }));
+
+  const getInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    return user?.emailAddresses[0]?.emailAddress[0].toUpperCase() || '?';
+  };
+
+  return (
+    <LinearGradient
+      colors={['#FF6B6B', '#FF8E53']}
+      style={styles.header}
+    >
+      <Animated.View style={[styles.profileSection, animatedStyle]}>
+        {user?.imageUrl ? (
+          <Image
+            source={{ uri: user.imageUrl }}
+            style={styles.profileImage}
+          />
+        ) : (
+          <View style={[styles.profileImage, styles.initialsContainer]}>
+            <Text style={styles.initialsText}>{getInitials()}</Text>
+          </View>
+        )}
+        <View style={styles.profileInfo}>
+          <Text style={styles.userName}>
+            {user?.firstName && user?.lastName 
+              ? `${user.firstName} ${user.lastName}`
+              : user?.emailAddresses[0]?.emailAddress.split('@')[0]}
+          </Text>
+          <Text style={styles.userEmail}>
+            {user?.emailAddresses[0]?.emailAddress}
+          </Text>
+        </View>
+      </Animated.View>
+    </LinearGradient>
+  );
+};
 
 export default function Account() {
   const { user } = useUser();
   const { signOut } = useAuth();
-  const [userData, setUserData] = useState(Object);
-
-  const handleLogout = async () => {
-    console.log("logged out");
-    try {
-      await signOut();
-      alert("You have been logged out!");
-      router.push("/login")
-    } catch (error) {
-      console.error("Error logging out: ", error);
-    }
-  };
-
-  // const confirmLogout = () => {
-  //   Alert.alert(
-  //     "Confirm Logout",
-  //     "Are you sure you want to logout?",
-  //     [
-  //       {
-  //         text: "No",
-  //         onPress: () => console.log("Logout cancelled"),
-  //         style: "cancel", // Optionally style the 'No' button
-  //       },
-  //       {
-  //         text: "Yes",
-  //         onPress: () => handleLogout(), // Call the logout function if 'Yes' is pressed
-  //       },
-  //     ],
-  //     { cancelable: false } // Prevent closing the alert by tapping outside
-  //   );
-
-  //   if(Platform.OS =="web"){
-  //     Alert.alert("You logged out");
-  //   }
-
-  // };
-
-
-  const confirmLogout = () => {
-    if (Platform.OS === 'web') {
-      // For web
-      const userConfirmed = window.confirm("Are you sure you want to logout?");
-      if (userConfirmed) {
-        handleLogout(); // Call the logout function if 'Yes' is pressed
-      } else {
-        console.log("Logout cancelled");
-      }
-    } else {
-      // For native (iOS/Android)
-      Alert.alert(
-        "Confirm Logout",
-        "Are you sure you want to logout?",
-        [
-          {
-            text: "No",
-            onPress: () => console.log("Logout cancelled"),
-            style: "cancel",
-          },
-          {
-            text: "Yes",
-            onPress: () => handleLogout(),
-          },
-        ],
-        { cancelable: false }
-      );
-    }
-  };
-
-  async function getUserDocument(userId: string) {
-    try {
-      const userDocRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userDocRef);
-  
-      if (userDoc.exists()) {
-        // Document data is available
-        return userDoc.data();
-      } else {
-        // No such document!
-        console.log("No such document!");
-        return null;
-      }
-    } catch (e) {
-      console.error("Error getting document: ", e);
-      return null;
-    }
-  }
+  const router = useRouter();
+  const [userDetails, setUserDetails] = useState<any>(null);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (user) {
-        try {
-          const data = await getUserDocument(user.id); // Use user.id from Clerk
-          setUserData(data);
-          console.log("data: "+JSON.stringify(data));
-          console.log("data is here "+userData['email']);
-        } catch (error) {
-          console.error("Error fetching user data: ", error);
-        }
-      }
-    };
-
-    fetchUserData();
+    fetchUserDetails();
   }, [user]);
 
+  const fetchUserDetails = async () => {
+    if (user?.id) {
+      const userDoc = await getDoc(doc(db, 'users', user.id));
+      if (userDoc.exists()) {
+        setUserDetails(userDoc.data());
+      }
+    }
+  };
+
+
+  const handleSignOut = () => {
+    Alert.alert(
+      "Sign Out",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Sign Out", 
+          onPress: async () => {
+            await signOut();
+            router.replace("/login");
+          },
+          style: "destructive"
+        }
+      ]
+    );
+  };
+
+  const renderMetricCard = (title: string, value: string, icon: string, color: string) => (
+    <Animated.View 
+      entering={FadeInDown.delay(300).springify()}
+      style={[styles.metricCard, { backgroundColor: `${color}15` }]}
+    >
+      <View style={[styles.iconContainer, { backgroundColor: `${color}25` }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricTitle}>{title}</Text>
+    </Animated.View>
+  );
+
+  const renderSettingItem = (icon: string, title: string, onPress: () => void, showBadge?: boolean) => (
+    <TouchableOpacity style={styles.settingItem} onPress={onPress}>
+      <View style={styles.settingLeft}>
+        <View style={styles.settingIcon}>
+          <Ionicons name={icon} size={22} color="#666" />
+        </View>
+        <Text style={styles.settingText}>{title}</Text>
+      </View>
+      <View style={styles.settingRight}>
+        {showBadge && <View style={styles.badge}><Text style={styles.badgeText}>New</Text></View>}
+        <Ionicons name="chevron-forward" size={20} color="#666" />
+      </View>
+    </TouchableOpacity>
+  );
+
   return (
-    <ScrollView>
-    <View style={styles.container}>
-      {/* Top Navigation with Back Arrow and Profile Title */}
-      <View style={styles.header}>
-        <Ionicons style={styles.backIcon} name="arrow-back" size={24} />
-        <Text style={styles.profileTitle}>Profile</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <AccountHeader />
+
+      <View style={styles.content}>
+        <View style={styles.metricsContainer}>
+          {renderMetricCard(
+            'Goal',
+            userDetails?.userGoal === "weight gain" ? "Gain" : userDetails?.userGoal === "weight loss" ? "Loss" : "Not Set",
+            'fitness-outline',
+            '#FF6B6B'
+          )}
+          {renderMetricCard(
+            'Daily Target',
+            `${Math.round(userDetails?.maintenanceCalories || 0)} cal`,
+            'flame-outline',
+            '#4ECDC4'
+          )}
+          {renderMetricCard(
+            'Weight',
+            `${userDetails?.weight || 0} kg`,
+            'scale-outline',
+            '#45B7D1'
+          )}
+        </View>
+
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>Settings</Text>
+          {renderSettingItem('person-outline', 'Edit Profile', () => {})}
+          {renderSettingItem('notifications-outline', 'Notifications', () => {}, true)}
+          {renderSettingItem('shield-checkmark-outline', 'Privacy', () => {})}
+          {renderSettingItem('help-circle-outline', 'Help & Support', () => {})}
+          {renderSettingItem('information-circle-outline', 'About', () => {})}
+        </View>
+
+        <TouchableOpacity 
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+        >
+          <Ionicons name="log-out-outline" size={24} color="#FF6B6B" />
+          <Text style={styles.signOutText}>Sign Out</Text>
+        </TouchableOpacity>
+
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Version 1.0.0</Text>
+        </View>
       </View>
-
-      {/* Profile Information Section */}
-      <View style={styles.profileInfo}>
-        <Image
-          style={styles.profilePicture}
-          source={{
-            uri: user?.imageUrl,
-          }}
-        />
-        <Text style={styles.profileName}>{user?.fullName}</Text>
-        <Text style={styles.profileEmail}>{user?.emailAddresses[0].emailAddress}</Text>
-      </View>
-
-      {/* Me Section (Green Active Card) */}
-      <View style={styles.sectionCardGreen}>
-        <Text style={styles.sectionText}>Me</Text>
-        <Ionicons
-          style={styles.icon}
-          size={20}
-          name="arrow-forward"
-        />
-      </View>
-
-      {/* Maintenance Calorie Section */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionText}>Maintenance Calorie</Text>
-        <Text style={styles.sectionValue}>{Math.floor(userData['maintenanceCalories'])} Cal</Text>
-      </View>
-
-      {/* BMI Section */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionText}>Body Mass Index BMI</Text>
-        <Text style={styles.sectionValue}>{Math.floor(userData['bmi'])}</Text>
-      </View>
-
-      {/* BMR Section */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionText}>Basic Metabolism Rate BMR</Text>
-        <Text style={styles.sectionValue}>{Math.floor(userData['bmr'])}</Text>
-      </View>
-
-
-      {/* Water Tracker Section */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionText}>Goal</Text>
-        <Text style={styles.sectionValue}>{userData['userGoal']}</Text>
-      </View>
-
-      {/* Settings Section */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.sectionText}>Settings</Text>
-        <Ionicons
-          style={styles.icon}
-          name="settings"
-          size={24}
-        />
-      </View>
-
-      {/* Logout Section */}
-      <Pressable
-        onPress={() => {
-          console.log("heyy");
-          confirmLogout(); // Call the logout function
-        }}
-        style={({ pressed }) => [
-          styles.sectionCardGreen,
-          { backgroundColor: pressed ? 'lightcoral' : '#FFA500' } // Change color when pressed
-        ]}
-      >
-        <Text style={styles.sectionText}>Logout</Text>
-        <Ionicons
-          style={styles.icon}
-          size={24}
-          name="log-out"
-        />
-      </Pressable>
-    </View>
     </ScrollView>
   );
 }
@@ -411,71 +201,160 @@ export default function Account() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: 30,
-    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'android' ? 25 : 0,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "flex-start",
-    marginTop: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    marginTop: Platform.OS === 'ios' ? 40 : 25,
   },
-  backIcon: {
-    width: 24,
-    height: 24,
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 15 : 20,
   },
-  profileTitle: {
-    fontSize: 18,
-    fontWeight: "500",
-    color: "#0D1220",
-    marginLeft: 16,
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   profileInfo: {
-    alignItems: "center",
-    marginVertical: 20,
+    marginLeft: 15,
   },
-  profilePicture: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+  userName: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#fff',
+    textTransform: 'capitalize',
   },
-  profileName: {
-    fontSize: 20,
-    fontWeight: "500",
-    color: "#0D1220",
-    marginTop: 10,
+  userEmail: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 5,
   },
-  profileEmail: {
+  content: {
+    flex: 1,
+    paddingTop: 20,
+  },
+  metricsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  metricCard: {
+    width: width * 0.28,
+    padding: 15,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  metricValue: {
     fontSize: 16,
-    color: "orange",
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 5,
   },
-  sectionCardGreen: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "#FFA500",
-    padding: 16,
-    borderRadius: 10,
-    marginVertical: 8,
+  metricTitle: {
+    fontSize: 12,
+    color: '#666',
   },
-  sectionCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "#FFD580",
-    padding: 16,
-    borderRadius: 10,
-    marginVertical: 8,
+  settingsSection: {
+    paddingHorizontal: 20,
   },
-  sectionText: {
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  settingIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  settingText: {
     fontSize: 16,
-    color: "black",
-    fontWeight: "500",
+    color: '#333',
   },
-  sectionValue: {
-    fontSize: 15,
-    color: "#FF8C00",
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  icon: {
-    width: 24,
-    height: 24,
+  badge: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginRight: 10,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 30,
+    marginHorizontal: 20,
+    paddingVertical: 15,
+    borderRadius: 15,
+    backgroundColor: '#FFF0F0',
+  },
+  signOutText: {
+    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6B6B',
+  },
+  versionContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  versionText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  initialsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialsText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
   },
 });

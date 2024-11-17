@@ -1,13 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Dimensions, StyleSheet } from 'react-native';
+import { View, Text, Dimensions, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { PieChart, BarChart } from 'react-native-chart-kit';
 import { collection, doc, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { useUser } from '@clerk/clerk-expo';
-import { db } from '../../firebaseConfig'; // Your Firebase config
-import moment, { min } from 'moment';
-import { black, orange100 } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import { db } from '../../firebaseConfig';
+import moment from 'moment';
+import { Ionicons } from '@expo/vector-icons';
+import Animated, { 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  useSharedValue,
+  withSequence,
+  runOnJS
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 
-const screenWidth = Dimensions.get('window').width;
+const { width, height } = Dimensions.get('window');
 
 const Statistics = () => {
   const { user } = useUser();
@@ -16,6 +25,27 @@ const Statistics = () => {
   const date = moment().format('DD-MM-YYYY');
   const [caloriesData, setCaloriesData] = useState<number[]>([]);
   const [dateLabels, setDateLabels] = useState<string[]>([]);
+
+  const barAnimation = useSharedValue(0);
+  const pieAnimation = useSharedValue(0);
+
+  useEffect(() => {
+    barAnimation.value = withSequence(
+      withTiming(1.1, { duration: 500 }),
+      withSpring(1)
+    );
+    pieAnimation.value = withTiming(1, { duration: 1000 });
+  }, [caloriesData]);
+
+  const animatedBarStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: barAnimation.value }],
+    opacity: barAnimation.value,
+  }));
+
+  const animatedPieStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pieAnimation.value }],
+    opacity: pieAnimation.value,
+  }));
 
   async function getUserDocument(userId: string) {
     try {
@@ -105,9 +135,6 @@ const Statistics = () => {
         }
       });
 
-      // setCaloriesData(caloriesArray);
-      // setDateLabels(dateLabels);
-
       //ONLY 7 DAYS DATA
       setCaloriesData(caloriesArray.slice(-7));
       setDateLabels(dateLabels.slice(-7));
@@ -132,29 +159,28 @@ const Statistics = () => {
     return () => unsubscribe(); // Cleanup on unmount
   }, [user, date]);
 
+  const percentageConsumed = maintenanceCalories > 0 
+    ? (caloriesConsumed / maintenanceCalories) * 100 
+    : 0;
 
-
-  const percentageConsumed = (caloriesConsumed / maintenanceCalories) * 100;
-  let remaining = 100-percentageConsumed;
-
-  if (remaining <= 0) {
-    remaining = 0;
-  }
+  let remaining = maintenanceCalories > 0 
+    ? Math.max(0, 100 - percentageConsumed)
+    : 0;
 
   const chartData = [
     {
       name: 'Consumed',
-      calories: percentageConsumed,
-      color: 'orange',
+      calories: isNaN(percentageConsumed) ? 0 : percentageConsumed,
+      color: '#FF6B6B', // Vibrant red
       legendFontColor: '#7F7F7F',
-      legendFontSize: 15,
+      legendFontSize: 12,
     },
     {
       name: 'Remaining',
-      calories: remaining ,
-      color: 'grey',
+      calories: isNaN(remaining) ? 0 : remaining,
+      color: '#FFE0E0', // Light pink
       legendFontColor: '#7F7F7F',
-      legendFontSize: 15,
+      legendFontSize: 12,
     },
   ];
 
@@ -168,89 +194,369 @@ const Statistics = () => {
     ],
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={{ backgroundColor: "white", padding: 9, borderWidth: 1, borderColor: "black", borderRadius: 10, alignSelf:"flex-start"}}>
-        <Text style={styles.title}>Weekly Calorie Stats</Text>
+  const renderStatCard = (title: string, value: string, icon: string, color: string) => (
+    <View style={styles.statCard}>
+      <View style={[styles.iconContainer, { backgroundColor: `${color}20` }]}>
+        <Ionicons name={icon} size={24} color={color} />
       </View>
-      {/* Bar Chart */}
-      <BarChart
-        data={barChartData}
-        width={screenWidth - 20} // Adjusting for padding
-        height={220}
-        chartConfig={chartConfig}
-        fromZero={true}
-        verticalLabelRotation={0}
-        style={styles.chart}
-
-      />
-
-      <View style={{ backgroundColor: "white", padding: 9, borderWidth: 1, borderColor: "black", borderRadius: 10,alignSelf:"flex-start" }}>
-        <Text style={styles.title}> Consumed Vs Maintainance </Text>
-      </View>
-
-      {/* Pie Chart */}
-      <PieChart
-        data={chartData}
-        width={screenWidth - 20} // Adjusting for padding
-        height={220}
-        chartConfig={chartConfig}
-        accessor="calories"
-        backgroundColor="transparent"
-        paddingLeft="15"
-      />
-
-      <View style={styles.statsContainer}>
-        <Text style={styles.statText}>You have consumed {caloriesConsumed} calories from  {maintenanceCalories} Maintainance Calories</Text>
-      </View>
-
+      <Text style={styles.statTitle}>{title}</Text>
+      <Text style={[styles.statValue, { color }]}>{value}</Text>
     </View>
+  );
+
+  // Enhanced Bar Chart Configuration
+  const barChartConfig = {
+    backgroundColor: '#ffffff',
+    backgroundGradientFrom: '#ffffff',
+    backgroundGradientTo: '#ffffff',
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(255, 160, 122, ${opacity})`, // Light orange color
+    labelColor: (opacity = 1) => `rgba(102, 102, 102, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForBackgroundLines: {
+      strokeDasharray: "6 6",
+      stroke: "#e3e3e3",
+      strokeWidth: 1,
+    },
+    propsForLabels: {
+      fontSize: 11,
+      fontWeight: '500',
+      color: '#666666',
+    },
+    barPercentage: 0.5, // Make bars thinner
+    fillShadowGradient: '#FFA07A',
+    fillShadowGradientOpacity: 0.3, // Reduce opacity to make it lighter
+  };
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Statistics</Text>
+        <Text style={styles.headerSubtitle}>Track your progress</Text>
+      </View>
+
+      <View style={styles.cardsContainer}>
+        {renderStatCard(
+          'Daily Goal',
+          `${maintenanceCalories} cal`,
+          'fitness-outline',
+          '#FF6B6B'
+        )}
+        {renderStatCard(
+          'Consumed',
+          `${caloriesConsumed} cal`,
+          'restaurant-outline',
+          '#4ECDC4'
+        )}
+        {renderStatCard(
+          'Remaining',
+          `${Math.max(0, maintenanceCalories - caloriesConsumed)} cal`,
+          'timer-outline',
+          '#45B7D1'
+        )}
+      </View>
+
+      <Animated.View style={[styles.chartContainer, animatedBarStyle]}>
+        <View style={styles.chartHeader}>
+          <Text style={styles.chartTitle}>Weekly Progress</Text>
+          <LinearGradient
+            colors={['#FF6B6B', '#FFA07A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.gradientBadge}
+          >
+            <Text style={styles.badgeText}>Last 7 Days</Text>
+          </LinearGradient>
+        </View>
+        
+        <View style={styles.chartWrapper}>
+          <BarChart
+            data={barChartData}
+            width={width - 80} // Reduce width to prevent overflow
+            height={220}
+            chartConfig={barChartConfig}
+            style={styles.chart}
+            fromZero
+            showValuesOnTopOfBars
+            segments={5}
+            withInnerLines={true}
+            flatColor={true}
+            withHorizontalLabels={true}
+            yAxisLabel=""
+            yAxisSuffix=""
+          />
+        </View>
+      </Animated.View>
+
+      <Animated.View style={[styles.pieChartContainer, animatedPieStyle]}>
+        <Text style={styles.chartTitle}>Today's Progress</Text>
+        <View style={styles.pieWrapper}>
+          <PieChart
+            data={chartData}
+            width={width - 60}
+            height={200}
+            chartConfig={{
+              color: (opacity = 1) => `rgba(255, 107, 107, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            }}
+            accessor="calories"
+            backgroundColor="transparent"
+            paddingLeft="0"
+            center={[(width - 60) / 4, 0]}
+            absolute
+            hasLegend={false}
+            avoidFalseZero
+          />
+          <View style={styles.centerLabel}>
+            <Text style={styles.centerValue}>
+              {Math.round(percentageConsumed)}%
+            </Text>
+            <Text style={styles.centerText}>Consumed</Text>
+          </View>
+        </View>
+        
+        <View style={styles.legendContainer}>
+          {chartData.map((item, index) => (
+            <View key={index} style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+              <Text style={styles.legendText}>{item.name}</Text>
+              <Text style={styles.legendValue}>{Math.round(item.calories)}%</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.progressBarContainer}>
+          <View style={styles.progressBar}>
+            <Animated.View 
+              style={[
+                styles.progressFill, 
+                { 
+                  width: `${Math.min(percentageConsumed, 100)}%`,
+                  backgroundColor: percentageConsumed > 100 ? '#FF4444' : '#FF6B6B' 
+                }
+              ]} 
+            />
+          </View>
+        </View>
+      </Animated.View>
+    </ScrollView>
   );
 };
 
-// Chart configuration for the charts
-const chartConfig = {
-  backgroundColor: '#e26a00',
-  backgroundGradientFrom: '#fb8c00',
-  backgroundGradientTo: '#ffa726',
-  color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-  strokeWidth: 2, // optional, default 3
-  barPercentage: 0.5,
-  propsForBackgroundLines: {
-    strokeDasharray: "", // solid background lines with no dash
-  },
-  min: 100,
-
-};
-
-// Styling for the component
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: '#ffffff',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 5,
+  },
+  cardsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 20,
+    flexWrap: 'wrap',
+  },
+  statCard: {
+    width: width * 0.28,
+    backgroundColor: '#ffffff',
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 10,
   },
-  statsContainer: {
-
-    marginTop: 20,
+  statTitle: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
   },
-  statText: {
-    textAlign:"center",
+  statValue: {
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  chartContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 15,
+    margin: 20,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingHorizontal: 5,
+  },
+  chartTitle: {
+    fontSize: 18,
     fontWeight: '600',
     color: '#333',
   },
+  chartLegend: {
+    flexDirection: 'row',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 15,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 5,
+  },
+  legendText: {
+    fontSize: 12,
+    color: '#666',
+  },
   chart: {
-    marginVertical: 8,
+    marginVertical: 10,
     borderRadius: 16,
-    marginBottom: 30,
+  },
+  pieChartContainer: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 20,
+    margin: 20,
+    marginTop: 0,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  pieWrapper: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+  },
+  centerLabel: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -40 }, { translateY: -30 }],
+  },
+  centerValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+  },
+  centerText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 20,
+    marginBottom: 15,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  legendText: {
+    fontSize: 14,
+    color: '#666',
+    marginRight: 8,
+  },
+  legendValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  progressBarContainer: {
+    marginTop: 15,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#FFE0E0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  gradientBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 3.84,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  chartWrapper: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 15,
+    alignItems: 'center',
+  },
+  barValue: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#666',
   },
 });
 

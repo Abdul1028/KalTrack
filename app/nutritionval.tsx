@@ -1,8 +1,17 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRoute } from "@react-navigation/native";
 import { router, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
-import { StyleSheet, Image, Text, View, Dimensions, Pressable, TouchableOpacity, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StyleSheet, Image, Text, View, Dimensions, Pressable, TouchableOpacity, Alert, ScrollView, Platform } from "react-native";
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { 
+  FadeInDown, 
+  FadeInUp,
+  useAnimatedStyle, 
+  withSpring,
+  withTiming,
+  useSharedValue
+} from 'react-native-reanimated';
 
 const { width } = Dimensions.get("window");
 
@@ -193,8 +202,6 @@ async function updateNutritionData(userId:any, foodData:any, mealType:any) {
   Alert.alert("Meals Nutrition Updated")
   console.log("Nutrition data updated for date:", currentDate);
   updateMealsTaken(userId,foodData,mealType);
-
-  scheduleMidnightNotification(userId);
 }
 
   const item = useLocalSearchParams();
@@ -226,83 +233,145 @@ async function updateNutritionData(userId:any, foodData:any, mealType:any) {
     }
   }
 
+  const renderNutrientCard = (label: string, value: any, unit: string, icon: string, color: string) => {
+    const opacity = useSharedValue(0);
+    const translateY = useSharedValue(50);
 
+    useEffect(() => {
+      opacity.value = withTiming(1, { duration: 500 });
+      translateY.value = withSpring(0, { delay: 300 });
+    }, []);
 
+    const animatedStyle = useAnimatedStyle(() => ({
+      opacity: opacity.value,
+      transform: [{ translateY: translateY.value }]
+    }));
 
+    return (
+      <Animated.View style={[styles.nutrientCard, { backgroundColor: `${color}10` }, animatedStyle]}>
+        <View style={[styles.iconContainer, { backgroundColor: `${color}20` }]}>
+          <Ionicons name={icon} size={24} color={color} />
+        </View>
+        <Text style={styles.nutrientLabel}>{label}</Text>
+        <Text style={[styles.nutrientValue, { color }]}>
+          {value ? formatToTwoDecimals(value) : '0.00'} {unit}
+        </Text>
+      </Animated.View>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.iconWrapper}>
-          <Pressable onPress={() => { router.navigate("/(tabs)/home") }}>
-            <Ionicons name="arrow-back" color={"orange"} size={24} />
-          </Pressable>
-        </View>
-        <Text style={styles.headerTitle}>Nutritional Value</Text>
-        <View style={styles.iconWrapper}>
-          <Ionicons name="menu" color={"orange"} size={24} />
-        </View>
-      </View>
-
-      {/* Main Image */}
-      <Image
-        style={styles.mainImage}
-        source={{uri:item.pic} }
-      />
-
-      {/* Nutrition Info */}
-      <View style={styles.nutritionInfo}>
-        <View style={styles.nutritionHeader}>
-          <Text style={styles.dishTitle}>{item.name}</Text>
-          <Text style={styles.nutritionValue}>Nutrition value</Text>
-        </View>
-        <View style={styles.nutritionDetails}>
-          <Text style={styles.servingSize}>100g</Text>
-          <Text style={styles.calories}>{Math.floor(item?.energy)} cal</Text>
-        </View>
-      </View>
-
-      {/* Nutrition Breakdown */}
-      <View style={styles.nutritionBreakdown}>
-        <View style={styles.nutritionRow}>
-          <Text style={styles.nutritionLabel}>Protein</Text>
-          <Text style={styles.nutritionValueDetail}>{formatToTwoDecimals(item?.pros)} g</Text>
-        </View>
-        <View style={styles.nutritionRow}>
-          <Text style={styles.nutritionLabel}>Carbs</Text>
-          <Text style={styles.nutritionValueDetail}>{formatToTwoDecimals(item?.carbs)} g</Text>
-        </View>
-        <View style={styles.nutritionRow}>
-          <Text style={styles.nutritionLabel}>Fat</Text>
-          <Text style={styles.nutritionValueDetail}>{formatToTwoDecimals(item?.fats)} g</Text>
-        </View>
-        <View style={styles.nutritionRow}>
-          <Text style={styles.nutritionLabel}>Fibres</Text>
-          <Text style={styles.nutritionValueDetail}>{formatToTwoDecimals(item?.fibres)} g</Text>
-        </View>
-      </View>
-
-      {/* Consume Button */}
-      <View style={styles.buttonContainer}>
-        {/* Show loading indicator when loading */}
-        {loading ? (
-          <ActivityIndicator size="large" color="orange" />
-        ) : (
-          <TouchableOpacity
-            style={styles.consumeButton}
-            onPress={() => updateNutritionData(user?.id, { energy: item.energy, pros: item.pros, carbs: item.carbs, name: item.name }, item.mealType)}
+      <Animated.View 
+        entering={FadeInDown.duration(500)}
+        style={styles.header}
+      >
+        <View style={styles.headerLeft}>
+          <Pressable 
+            style={styles.backButton}
+            onPress={() => { router.navigate("/(tabs)/home") }}
           >
-            <Text style={styles.consumeButtonText}>Consume</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+            <Ionicons name="arrow-back" color="#FF6B6B" size={24} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Nutrition Details</Text>
+        </View>
+        <TouchableOpacity style={styles.shareButton}>
+          <Ionicons name="share-outline" size={24} color="#666" />
+        </TouchableOpacity>
+      </Animated.View>
 
-      {/* Call to Action */}
-      <View style={styles.cta}>
-        <Text style={styles.ctaText}>Health body comes with good nutrition</Text>
-        <Text style={styles.ctaSubtext}>Get good nutrition now!</Text>
-      </View>
+      <Animated.View 
+        entering={FadeInUp.duration(500)}
+        style={styles.imageContainer}
+      >
+        <Image
+          style={styles.mainImage}
+          source={
+            item.pic 
+              ? { uri: item.pic }
+              : require('../assets/images/splash.png') // Add a default food image to your assets
+          }
+          defaultSource={require('../assets/images/splash.png')}
+          onError={(e) => {
+            console.log('Image loading error:', e.nativeEvent.error);
+            // You could set a state here to show the default image
+          }}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.imageOverlay}
+        >
+          <Text style={styles.dishTitle}>{item.name || 'Food Item'}</Text>
+          <View style={styles.caloriesBadge}>
+            <Ionicons name="flame" size={20} color="#FF6B6B" />
+            <Text style={styles.caloriesText}>
+              {Math.floor(item?.energy || 0)} calories
+            </Text>
+          </View>
+        </LinearGradient>
+      </Animated.View>
+
+      {!item || Object.keys(item).length === 0 ? (
+        <View style={styles.noDataContainer}>
+          <ActivityIndicator size="large" color="#FF6B6B" />
+          <Text style={styles.noDataText}>Loading nutritional information...</Text>
+        </View>
+      ) : (
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={styles.contentContainer}>
+            <View style={styles.servingContainer}>
+              <Text style={styles.sectionTitle}>Serving Size</Text>
+              <View style={styles.servingBadge}>
+                <Text style={styles.servingText}>100g</Text>
+              </View>
+            </View>
+
+            <Text style={styles.sectionTitle}>Nutrition Facts</Text>
+            <View style={styles.nutrientsGrid}>
+              {renderNutrientCard('Protein', item?.pros, 'g', 'fitness-outline', '#FF6B6B')}
+              {renderNutrientCard('Carbs', item?.carbs, 'g', 'restaurant-outline', '#4ECDC4')}
+              {renderNutrientCard('Fat', item?.fats, 'g', 'water-outline', '#45B7D1')}
+              {renderNutrientCard('Fiber', item?.fibres, 'g', 'leaf-outline', '#96CEB4')}
+            </View>
+
+            <View style={styles.buttonContainer}>
+              {loading ? (
+                <ActivityIndicator size="large" color="#FF6B6B" />
+              ) : (
+                <TouchableOpacity
+                  style={styles.consumeButton}
+                  onPress={() => updateNutritionData(user?.id, {
+                    energy: item.energy,
+                    pros: item.pros,
+                    carbs: item.carbs,
+                    name: item.name
+                  }, item.mealType)}
+                >
+                  <LinearGradient
+                    colors={['#FF6B6B', '#FF8E53']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.gradientButton}
+                  >
+                    <Ionicons name="add-circle-outline" size={24} color="white" />
+                    <Text style={styles.consumeButtonText}>Add to Daily Intake</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <View style={styles.tipCard}>
+              <View style={styles.tipHeader}>
+                <Ionicons name="bulb-outline" size={24} color="#FFB347" />
+                <Text style={styles.tipTitle}>Nutrition Tip</Text>
+              </View>
+              <Text style={styles.tipText}>
+                A balanced diet with proper nutrition is key to maintaining good health and energy levels throughout the day.
+              </Text>
+            </View>
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -310,109 +379,185 @@ async function updateNutritionData(userId:any, foodData:any, mealType:any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    marginTop: "14%",
+    backgroundColor: '#fff',
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
   },
-  iconWrapper: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.4)",
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  icon: {
-    width: 24,
-    height: 24,
+  backButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFF0F0',
   },
   headerTitle: {
-    fontSize: width * 0.06, // Responsive font size
-    fontWeight: "500",
+    fontSize: 24,
+    fontWeight: '600',
+    marginLeft: 15,
+    color: '#333',
+  },
+  shareButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  imageContainer: {
+    height: width * 0.6,
+    width: '100%',
+    position: 'relative',
   },
   mainImage: {
-    width: "100%",
-    height: width * 0.5, // Make the height relative to the width
-    resizeMode: "cover",
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-  nutritionInfo: {
-    padding: 16,
-  },
-  nutritionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
   },
   dishTitle: {
-    fontSize: width * 0.06, // Responsive font size
-    fontWeight: "500",
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 10,
   },
-  nutritionValue: {
-    fontSize: width * 0.04,
-    color: "orange",
+  caloriesBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
   },
-  nutritionDetails: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 8,
+  caloriesText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6B6B',
+    marginLeft: 5,
   },
-  servingSize: {
-    fontSize: width * 0.05,
-    fontWeight: "500",
+  contentContainer: {
+    padding: 20,
   },
-  calories: {
-    fontSize: width * 0.04,
-    color: "orange",
+  servingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  nutritionBreakdown: {
-    padding: 16,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
   },
-  nutritionRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
+  servingBadge: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 15,
   },
-  nutritionLabel: {
-    fontSize: width * 0.05,
-    fontWeight: "600",
+  servingText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
   },
-  nutritionValueDetail: {
-    fontSize: width * 0.04,
-    color: "orange",
+  nutrientsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  nutrientCard: {
+    width: '48%',
+    padding: 15,
+    borderRadius: 15,
+    marginBottom: 15,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  nutrientLabel: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: 5,
+  },
+  nutrientValue: {
+    fontSize: 20,
+    fontWeight: '600',
   },
   buttonContainer: {
-    alignItems: "center",
-    marginVertical: 16,
+    marginVertical: 20,
   },
   consumeButton: {
-    backgroundColor: "orange",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
+    width: '100%',
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  gradientButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
   consumeButtonText: {
-    color: "white",
-    fontSize: width * 0.05,
-    fontWeight: "500",
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 10,
   },
-  cta: {
-    marginTop: 32,
-    padding: 16,
-    backgroundColor: "#F3F3F3",
-    borderRadius: 12,
-    alignItems: "center",
+  tipCard: {
+    backgroundColor: '#FFF9E7',
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 20,
   },
-  ctaText: {
-    fontSize: width * 0.045,
-    fontWeight: "500",
+  tipHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
   },
-  ctaSubtext: {
-    fontSize: width * 0.035,
-    color: "#808080",
-    marginTop: 4,
+  tipTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFB347',
+    marginLeft: 10,
+  },
+  tipText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noDataText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
