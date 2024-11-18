@@ -19,7 +19,10 @@
   "dependencies": {
     "@clerk/clerk-expo": "^2.2.10",
     "@expo/metro-runtime": "~4.0.0",
+    "@expo/next-adapter": "^6.0.0",
     "@expo/vector-icons": "^14.0.2",
+    "@react-native-async-storage/async-storage": "1.23.1",
+    "@react-native-community/slider": "4.5.5",
     "@react-navigation/native": "^6.0.2",
     "axios": "^1.7.7",
     "eas": "^0.1.0",
@@ -42,6 +45,8 @@
     "firebase": "^10.13.1",
     "lottie-react-native": "7.1.0",
     "moment": "^2.30.1",
+    "next": "^15.0.3",
+    "next-transpile-modules": "^10.0.1",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.2",
@@ -56,9 +61,7 @@
     "react-native-skeleton-placeholder": "^5.2.4",
     "react-native-svg": "15.8.0",
     "react-native-swiper": "^1.6.0",
-    "react-native-web": "~0.19.13",
-    "@react-native-community/slider": "4.5.5",
-    "@react-native-async-storage/async-storage": "1.23.1"
+    "react-native-web": "~0.19.13"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
@@ -70,5 +73,10 @@
     "react-test-renderer": "18.2.0",
     "typescript": "~5.3.3"
   },
-  "private": true
+  "private": true,
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next"
 }
