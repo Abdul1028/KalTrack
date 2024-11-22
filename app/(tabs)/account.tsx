@@ -32,6 +32,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 375;
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
 const AccountHeader = () => {
   const { user } = useUser();
   const opacity = useSharedValue(0);
@@ -92,12 +100,21 @@ export default function Account() {
   const [userDetails, setUserDetails] = useState<any>(null);
   const [isWaterReminderOn, setIsWaterReminderOn] = useState(false);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
-  const [reminderInterval, setReminderInterval] = useState(2);
+  const [notificationInterval, setNotificationInterval] = useState(4);
+  const [activeNotificationInterval, setActiveNotificationInterval] = useState<NodeJS.Timeout | null>(null);
+  const [showSlider, setShowSlider] = useState(false);
 
   useEffect(() => {
     fetchUserDetails();
     loadWaterReminderPreferences();
-  }, [user]);
+    checkNotificationPermissions();
+    
+    return () => {
+      if (activeNotificationInterval) {
+        clearInterval(activeNotificationInterval);
+      }
+    };
+  }, []);
 
   const fetchUserDetails = async () => {
     if (user?.id) {
@@ -114,7 +131,7 @@ export default function Account() {
       const interval = await AsyncStorage.getItem('waterReminderInterval');
       
       if (reminderOn) setIsWaterReminderOn(JSON.parse(reminderOn));
-      if (interval) setReminderInterval(JSON.parse(interval));
+      if (interval) setNotificationInterval(JSON.parse(interval));
     } catch (error) {
       console.log('Error loading preferences:', error);
     }
@@ -166,49 +183,97 @@ export default function Account() {
     </TouchableOpacity>
   );
 
-  const scheduleWaterReminders = async () => {
-    try {
-      // Request permissions
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please enable notifications to use this feature.');
-        return;
-      }
+  const scheduleWaterReminder = async (interval: number) => {
+    if (activeNotificationInterval) {
+      clearInterval(activeNotificationInterval);
+    }
 
-      // Cancel existing reminders
-      await Notifications.cancelAllScheduledNotificationsAsync();
+    if (interval === 0) {
+      return;
+    }
 
-      if (isWaterReminderOn) {
-        // Schedule new reminders
+    const newInterval = setInterval(async () => {
+      try {
         await Notifications.scheduleNotificationAsync({
           content: {
-            title: "💧 Water Reminder",
-            body: "Time to drink water! Stay hydrated for better health.",
+            title: "Time to drink water! 💧",
+            body: "Stay hydrated for better health!",
             sound: true,
           },
-          trigger: {
-            seconds: reminderInterval * 3600, // Convert hours to seconds
-            repeats: true,
-          },
+          trigger: null,
         });
-
-        // Save preferences
-        await AsyncStorage.setItem('waterReminderOn', JSON.stringify(true));
-        await AsyncStorage.setItem('waterReminderInterval', JSON.stringify(reminderInterval));
+      } catch (error) {
+        console.error("Error scheduling notification:", error);
       }
-    } catch (error) {
-      console.log('Error scheduling reminders:', error);
-      Alert.alert('Error', 'Failed to set water reminders');
-    }
+    }, interval * 1000);
+
+    setActiveNotificationInterval(newInterval);
   };
 
   const toggleWaterReminder = async (value: boolean) => {
-    setIsWaterReminderOn(value);
-    if (!value) {
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      await AsyncStorage.setItem('waterReminderOn', JSON.stringify(false));
-    } else {
-      setShowReminderSettings(true);
+    try {
+      setIsWaterReminderOn(value);
+      
+      if (!value) {
+        if (activeNotificationInterval) {
+          clearInterval(activeNotificationInterval);
+          setActiveNotificationInterval(null);
+        }
+        await AsyncStorage.setItem('waterReminderOn', JSON.stringify(false));
+        setShowReminderSettings(false);
+        setShowSlider(false);
+      } else {
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status !== 'granted') {
+          const { status: newStatus } = await Notifications.requestPermissionsAsync();
+          if (newStatus !== 'granted') {
+            Alert.alert('Permission Required', 'Please enable notifications to use this feature.');
+            setIsWaterReminderOn(false);
+            return;
+          }
+        }
+
+        await AsyncStorage.setItem('waterReminderOn', JSON.stringify(true));
+        setShowReminderSettings(true);
+        setShowSlider(true);
+        await scheduleWaterReminder(notificationInterval);
+      }
+    } catch (error) {
+      console.error("Error toggling water reminder:", error);
+      Alert.alert('Error', 'Failed to set water reminder');
+    }
+  };
+
+  const handleIntervalSelection = async (value: number) => {
+    try {
+      await AsyncStorage.setItem('waterReminderInterval', JSON.stringify(value));
+      if (isWaterReminderOn && value > 0) {
+        await scheduleWaterReminder(value);
+        
+        Alert.alert(
+          'Water Reminder Set',
+          `You will be reminded to drink water every ${value} seconds.`,
+          [
+            {
+              text: 'OK',
+              onPress: () => setShowSlider(false)
+            }
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Error updating reminder interval:", error);
+      Alert.alert('Error', 'Failed to update reminder interval');
+    }
+  };
+
+  const checkNotificationPermissions = async () => {
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+      const { status: newStatus } = await Notifications.requestPermissionsAsync();
+      if (newStatus !== 'granted') {
+        alert('You need to enable notifications for this feature to work.');
+      }
     }
   };
 
@@ -252,41 +317,43 @@ export default function Account() {
               </View>
               <Text style={styles.settingText}>Water Reminder</Text>
             </View>
-            <Switch
-              value={isWaterReminderOn}
-              onValueChange={toggleWaterReminder}
-              trackColor={{ false: '#767577', true: '#FF6B6B' }}
-              thumbColor={isWaterReminderOn ? '#ff4444' : '#f4f3f4'}
-            />
+            <View style={styles.settingRight}>
+              <Text style={styles.intervalText}>
+                {isWaterReminderOn && !showSlider ? `${notificationInterval}s` : ''}
+              </Text>
+              <Switch
+                value={isWaterReminderOn}
+                onValueChange={toggleWaterReminder}
+                trackColor={{ false: '#767577', true: '#FF6B6B' }}
+                thumbColor={isWaterReminderOn ? '#ff4444' : '#f4f3f4'}
+              />
+            </View>
           </View>
-          {showReminderSettings && isWaterReminderOn && (
-            <Animated.View 
-              entering={FadeInDown}
-              style={styles.reminderSettings}
-            >
+
+          {isWaterReminderOn && showSlider && (
+            <View style={styles.reminderSettings}>
               <Text style={styles.reminderText}>
-                Remind every {reminderInterval} hours
+                Select reminder interval
               </Text>
               <Slider
                 style={styles.slider}
-                minimumValue={2}
-                maximumValue={6}
-                step={1}
-                value={reminderInterval}
-                onValueChange={setReminderInterval}
-                onSlidingComplete={() => {
-                  scheduleWaterReminders();
-                  setShowReminderSettings(false);
-                }}
+                minimumValue={0}
+                maximumValue={12}
+                step={4}
+                value={notificationInterval}
+                onValueChange={setNotificationInterval}
+                onSlidingComplete={handleIntervalSelection}
                 minimumTrackTintColor="#FF6B6B"
                 maximumTrackTintColor="#ddd"
                 thumbTintColor="#FF6B6B"
               />
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderLabel}>2h</Text>
-                <Text style={styles.sliderLabel}>6h</Text>
+                <Text style={styles.sliderLabel}>0s</Text>
+                <Text style={styles.sliderLabel}>4s</Text>
+                <Text style={styles.sliderLabel}>8s</Text>
+                <Text style={styles.sliderLabel}>12s</Text>
               </View>
-            </Animated.View>
+            </View>
           )}
         </View>
 
@@ -417,6 +484,7 @@ const styles = StyleSheet.create({
   settingRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
   badge: {
     backgroundColor: '#FF6B6B',
@@ -468,9 +536,9 @@ const styles = StyleSheet.create({
   reminderSettings: {
     backgroundColor: '#f8f8f8',
     padding: 15,
-    marginHorizontal: 20,
-    borderRadius: 15,
     marginTop: 10,
+    borderRadius: 15,
+    marginHorizontal: 20,
   },
   reminderText: {
     fontSize: 16,
@@ -486,9 +554,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
+    marginTop: 5,
   },
   sliderLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  intervalText: {
     fontSize: 14,
     color: '#666',
+    marginRight: 8,
   },
 });
