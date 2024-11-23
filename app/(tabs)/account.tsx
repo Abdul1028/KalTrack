@@ -263,10 +263,9 @@ export default function Account() {
       }
     } catch (error) {
       console.error("Error updating reminder interval:", error);
-      Alert.alert('Error', 'Failed to update reminder interval');
+      Alert.alert('Error', 'Failed to update reminder intervals');
     }
   };
-
   const checkNotificationPermissions = async () => {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
