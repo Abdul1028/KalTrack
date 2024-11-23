@@ -276,6 +276,7 @@ export default function Account() {
       }
     }
   };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <AccountHeader />
