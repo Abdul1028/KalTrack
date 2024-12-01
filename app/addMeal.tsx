@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,18 @@ export default function AddMeal() {
   const [loading, setLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
 
+  useEffect(() => {
+    if (!mealType) {
+      Alert.alert('Error', 'Please select a meal category first');
+      router.back();
+    }
+  }, []);
+
   const searchFood = async (query: string) => {
+    if (!mealType) {
+      Alert.alert('Error', 'Please select a meal category first');
+      return;
+    }
     if (query.length < 2) return;
     setLoading(true);
     
@@ -46,20 +57,22 @@ export default function AddMeal() {
   };
 
   const addFoodToMeal = async (food: any) => {
-    if (!user) return;
+    if (!user || !mealType) return;
     
     try {
       router.push({
-        pathname: "/nutritionval",
+        pathname: "/portion-selector",
         params: {
-          pic: food.food.image || "https://via.placeholder.com/400x300?text=Food+Image",
-          name: food.food.label,
-          energy: food.food.nutrients.ENERC_KCAL,
-          pros: food.food.nutrients.PROCNT,
-          fats: food.food.nutrients.FAT,
-          carbs: food.food.nutrients.CHOCDF,
-          fibres: food.food.nutrients.FIBTG,
+          foodId: food.food.foodId,
+          foodLabel: food.food.label,
+          image: food.food.image || "",
+          baseCalories: food.food.nutrients?.ENERC_KCAL || 0,
+          baseProtein: food.food.nutrients?.PROCNT || 0,
+          baseFat: food.food.nutrients?.FAT || 0,
+          baseCarbs: food.food.nutrients?.CHOCDF || 0,
+          baseFiber: food.food.nutrients?.FIBTG || 0,
           mealType: mealType,
+          defaultWeight: 100
         }
       });
     } catch (error) {

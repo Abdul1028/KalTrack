@@ -9,7 +9,8 @@ import {
   Dimensions,
   Platform,
   Alert,
-  Switch
+  Switch,
+  Modal
 } from 'react-native';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +29,7 @@ import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import BarcodeScanner from '../../components/BarcodeScanner';
 
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 375;
@@ -100,9 +102,12 @@ export default function Account() {
   const [userDetails, setUserDetails] = useState<any>(null);
   const [isWaterReminderOn, setIsWaterReminderOn] = useState(false);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
-  const [notificationInterval, setNotificationInterval] = useState(4);
+  const [notificationInterval, setNotificationInterval] = useState(1);
   const [activeNotificationInterval, setActiveNotificationInterval] = useState<NodeJS.Timeout | null>(null);
   const [showSlider, setShowSlider] = useState(false);
+  const [sliderValue, setSliderValue] = useState(1);
+  const [showScanner, setShowScanner] = useState(false);
+  const [scannedFood, setScannedFood] = useState<any>(null);
 
   useEffect(() => {
     fetchUserDetails();
@@ -183,98 +188,163 @@ export default function Account() {
     </TouchableOpacity>
   );
 
-  const scheduleWaterReminder = async (interval: number) => {
-    if (activeNotificationInterval) {
-      clearInterval(activeNotificationInterval);
-    }
-
-    if (interval === 0) {
-      return;
-    }
-
-    const newInterval = setInterval(async () => {
-      try {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: "Time to drink water! 💧",
-            body: "Stay hydrated for better health!",
-            sound: true,
-          },
-          trigger: null,
-        });
-      } catch (error) {
-        console.error("Error scheduling notification:", error);
-      }
-    }, interval * 1000);
-
-    setActiveNotificationInterval(newInterval);
-  };
 
   const toggleWaterReminder = async (value: boolean) => {
     try {
       setIsWaterReminderOn(value);
       
       if (!value) {
-        if (activeNotificationInterval) {
-          clearInterval(activeNotificationInterval);
-          setActiveNotificationInterval(null);
-        }
-        await AsyncStorage.setItem('waterReminderOn', JSON.stringify(false));
+        // Turn off reminders
+        await Notifications.cancelAllScheduledNotificationsAsync();
+        await AsyncStorage.setItem('waterReminderOn', 'false');
         setShowReminderSettings(false);
         setShowSlider(false);
-      } else {
-        const { status } = await Notifications.getPermissionsAsync();
-        if (status !== 'granted') {
-          const { status: newStatus } = await Notifications.requestPermissionsAsync();
-          if (newStatus !== 'granted') {
-            Alert.alert('Permission Required', 'Please enable notifications to use this feature.');
-            setIsWaterReminderOn(false);
-            return;
-          }
-        }
-
-        await AsyncStorage.setItem('waterReminderOn', JSON.stringify(true));
-        setShowReminderSettings(true);
-        setShowSlider(true);
-        await scheduleWaterReminder(notificationInterval);
+        return;
       }
+
+      // Check permissions when turning on
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        const { status: newStatus } = await Notifications.requestPermissionsAsync();
+        if (newStatus !== 'granted') {
+          Alert.alert('Permission Required', 'Please enable notifications to use this feature.');
+          setIsWaterReminderOn(false);
+          return;
+        }
+      }
+
+      // Set up Android notification channel
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('water-reminders', {
+          name: 'Water Reminders',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF8C00',
+        });
+      }
+
+      // Just show the slider when turning on
+      setShowSlider(true);
+      setShowReminderSettings(true);
+      await AsyncStorage.setItem('waterReminderOn', 'true');
+
     } catch (error) {
       console.error("Error toggling water reminder:", error);
       Alert.alert('Error', 'Failed to set water reminder');
     }
   };
 
+  const handleIntervalSelection2 = async (value: number) => {
+    try {
+      setNotificationInterval(value); // Store the selected interval (optional)
+  
+      // Cancel all existing notifications before scheduling a new repeating one
+      await Notifications.cancelAllScheduledNotificationsAsync();
+  
+      // Schedule a repeating notification
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Water Reminder',
+          body: 'Time to hydrate yourself!',
+          sound: true,
+        },
+        trigger: {
+          seconds: value * 60, // Repeat every 'value' minutes
+          repeats: true, // Ensures the notification repeats
+        },
+      });
+  
+      Alert.alert(
+        'Notification Scheduled',
+        `A repeating notification has been scheduled every ${value} minutes.`
+      );
+    } catch (error) {
+      console.error('Error scheduling notification:', error);
+      Alert.alert('Error', 'Failed to schedule the notification');
+    }
+  };
+  
+  
+
   const handleIntervalSelection = async (value: number) => {
     try {
-      await AsyncStorage.setItem('waterReminderInterval', JSON.stringify(value));
-      if (isWaterReminderOn && value > 0) {
-        await scheduleWaterReminder(value);
-        
-        Alert.alert(
-          'Water Reminder Set',
-          `You will be reminded to drink water every ${value} seconds.`,
-          [
-            {
-              text: 'OK',
-              onPress: () => setShowSlider(false)
-            }
-          ]
-        );
+      if (value < 1) {
+        Alert.alert('Invalid Interval', 'Please select a time interval of 1 minute or more');
+        return;
       }
+      
+      setNotificationInterval(value);
+      await scheduleWaterReminder(value);
+      
     } catch (error) {
       console.error("Error updating reminder interval:", error);
-      Alert.alert('Error', 'Failed to update reminder intervals');
+      Alert.alert('Error', 'Failed to update reminder interval');
     }
   };
+
   const checkNotificationPermissions = async () => {
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') {
-      const { status: newStatus } = await Notifications.requestPermissionsAsync();
-      if (newStatus !== 'granted') {
-        alert('You need to enable notifications for this feature to work.');
-      }
+    const settings = await Notifications.getPermissionsAsync();
+    if (settings.granted) {
+      return true;
     }
+    
+    const permissionResponse = await Notifications.requestPermissionsAsync({
+      ios: {
+        allowAlert: true,
+        allowBadge: true,
+        allowSound: true,
+        allowAnnouncements: true,
+      },
+    });
+    
+    return permissionResponse.granted;
   };
+
+  useEffect(() => {
+    const setupNotifications = async () => {
+      // Request permissions first
+      const { status } = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+          allowAnnouncements: true,
+        },
+      });
+      
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'Please enable notifications to use this feature.');
+        return;
+      }
+
+      // Set up Android channel
+      if (Platform.OS === 'android') {
+        await Notifications.setNotificationChannelAsync('water-reminders', {
+          name: 'Water Reminders',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF8C00',
+        });
+      }
+    };
+
+    setupNotifications();
+
+    // Set up notification handlers
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('Notification received while app in foreground:', notification);
+    });
+
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('User interacted with notification:', response);
+    });
+
+    return () => {
+      subscription.remove();
+      responseSubscription.remove();
+    };
+  }, []);
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <AccountHeader />
@@ -308,6 +378,7 @@ export default function Account() {
           {renderSettingItem('shield-checkmark-outline', 'Privacy', () => {})}
           {renderSettingItem('help-circle-outline', 'Help & Support', () => {})}
           {renderSettingItem('information-circle-outline', 'About', () => {})}
+          {renderSettingItem('barcode-outline', 'Scan Food', () => setShowScanner(true))}
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
               <View style={styles.settingIcon}>
@@ -317,7 +388,7 @@ export default function Account() {
             </View>
             <View style={styles.settingRight}>
               <Text style={styles.intervalText}>
-                {isWaterReminderOn && !showSlider ? `${notificationInterval}s` : ''}
+                {isWaterReminderOn && !showSlider ? `${notificationInterval}m` : ''}
               </Text>
               <Switch
                 value={isWaterReminderOn}
@@ -331,25 +402,25 @@ export default function Account() {
           {isWaterReminderOn && showSlider && (
             <View style={styles.reminderSettings}>
               <Text style={styles.reminderText}>
-                Select reminder interval
+                Select reminder interval (minutes): {sliderValue}
               </Text>
               <Slider
                 style={styles.slider}
-                minimumValue={0}
-                maximumValue={12}
-                step={4}
-                value={notificationInterval}
-                onValueChange={setNotificationInterval}
+                minimumValue={1}
+                maximumValue={6}
+                step={1}
+                value={sliderValue}
+                onValueChange={(value) => setSliderValue(value)}
                 onSlidingComplete={handleIntervalSelection}
                 minimumTrackTintColor="#FF6B6B"
                 maximumTrackTintColor="#ddd"
                 thumbTintColor="#FF6B6B"
               />
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderLabel}>0s</Text>
-                <Text style={styles.sliderLabel}>4s</Text>
-                <Text style={styles.sliderLabel}>8s</Text>
-                <Text style={styles.sliderLabel}>12s</Text>
+                <Text style={styles.sliderLabel}>1m</Text>
+                <Text style={styles.sliderLabel}>2m</Text>
+                <Text style={styles.sliderLabel}>4m</Text>
+                <Text style={styles.sliderLabel}>6m</Text>
               </View>
             </View>
           )}
@@ -367,6 +438,42 @@ export default function Account() {
           <Text style={styles.versionText}>Version 1.0.0</Text>
         </View>
       </View>
+
+      {showScanner && (
+        <Modal
+          animationType="slide"
+          transparent={false}
+          visible={showScanner}
+          onRequestClose={() => setShowScanner(false)}
+        >
+          <View style={{ flex: 1 }}>
+            <BarcodeScanner
+              onFoodFound={(foodData) => {
+                setScannedFood(foodData);
+                setShowScanner(false);
+                Alert.alert(
+                  'Food Found',
+                  `Found: ${foodData.label}\nCalories: ${Math.round(foodData.nutrients.ENERC_KCAL)} kcal`,
+                  [
+                    {
+                      text: 'Add to Log',
+                      onPress: () => {
+                        // TODO: Implement food logging
+                        console.log('Adding to log:', foodData);
+                      }
+                    },
+                    {
+                      text: 'Cancel',
+                      style: 'cancel'
+                    }
+                  ]
+                );
+              }}
+              onClose={() => setShowScanner(false)}
+            />
+          </View>
+        </Modal>
+      )}
     </ScrollView>
   );
 }
@@ -547,6 +654,7 @@ const styles = StyleSheet.create({
   slider: {
     width: '100%',
     height: 40,
+    marginVertical: 10,
   },
   sliderLabels: {
     flexDirection: 'row',
@@ -562,5 +670,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginRight: 8,
+  },
+  scannerContainer: {
+    flex: 1,
+    backgroundColor: 'black',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 20,
   },
 });

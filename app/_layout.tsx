@@ -102,6 +102,14 @@ export default function RootLayout() {
           headerShown:false,
         }
       } />
+
+<Stack.Screen name="addMeal" options={
+        {
+          headerShown:false,
+        }
+      } />
+
+
 <Stack.Screen name="nutritionval" options={
         {
           headerShown:false,
@@ -114,6 +122,17 @@ export default function RootLayout() {
         }
       } />
 
+<Stack.Screen name="search" options={
+        {
+          headerShown:false,
+        }
+      } />
+
+<Stack.Screen name="portion-selector" options={
+        {
+          headerShown:false,
+        }
+      } />
       
     </Stack>
     </GestureHandlerRootView>

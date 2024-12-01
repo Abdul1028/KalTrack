@@ -40,6 +40,13 @@ const _layout = () => {
           tabBarInactiveTintColor: 'gray',
         }}
       />
+      <Tabs.Screen
+        name="recipes"
+        options={{
+          title: 'Recipes',
+          tabBarIcon: ({ color }) => <Ionicons name="restaurant" size={24} color={color} />,
+        }}
+      />
    </Tabs>
   )
 }

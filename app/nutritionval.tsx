@@ -150,8 +150,9 @@ async function updateMealsTaken(userId:any,meals:any,mealType:any){
   const currentDate = moment().format('DD-MM-YYYY'); // Format current date
     // Reference to the Meals collection inside NutritionData for the specific date and meal type
     const mealsCollectionRef = collection(db, `users/${userId}/NutritionData/${currentDate}/Meals`);
+
     try {
-      await addDoc(mealsCollectionRef, {name:meals.name,protien:meals.pros,calorie:meals.energy,carbohydrates:meals.carbs,mealTime:mealType});
+      await addDoc(mealsCollectionRef, {name:meals.name,protien:meals.pros,calorie:meals.energy,carbohydrates:meals.carbs,mealType:mealType});
       console.log("New meal added successfully");
     } catch (error) {
       console.error("Error adding meal: ", error);
@@ -201,6 +202,7 @@ async function updateNutritionData(userId:any, foodData:any, mealType:any) {
   setLoading(false);
   Alert.alert("Meals Nutrition Updated")
   console.log("Nutrition data updated for date:", currentDate);
+  console.log("meal type is in update call fnc: "+mealType);
   updateMealsTaken(userId,foodData,mealType);
 }
 
@@ -322,7 +324,7 @@ async function updateNutritionData(userId:any, foodData:any, mealType:any) {
             <View style={styles.servingContainer}>
               <Text style={styles.sectionTitle}>Serving Size</Text>
               <View style={styles.servingBadge}>
-                <Text style={styles.servingText}>100g</Text>
+                <Text style={styles.servingText}>{item.servings}g</Text>
               </View>
             </View>
 
@@ -340,7 +342,8 @@ async function updateNutritionData(userId:any, foodData:any, mealType:any) {
               ) : (
                 <TouchableOpacity
                   style={styles.consumeButton}
-                  onPress={() => updateNutritionData(user?.id, {
+                  onPress={
+                    () => updateNutritionData(user?.id, {
                     energy: item.energy,
                     pros: item.pros,
                     carbs: item.carbs,
