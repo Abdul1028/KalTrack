@@ -116,7 +116,6 @@ export default function Login() {
 
       const oauthResponse = await startAppleOAuthFlow({
         redirectUrl: Linking.createURL('/setup', { scheme: 'myapp' }),
-        scopes: ['email', 'name']
       });
 
       console.log("🍎 Full Apple OAuth Response:", JSON.stringify(oauthResponse, null, 2));
@@ -145,6 +144,7 @@ export default function Login() {
 
       await setActive({ session: createdSessionId });
       console.log("✅ Apple session activated successfully!");
+      router.replace('/setup');
       
     } catch (err) {
       console.error('❌ OAuth Apple error:', err);
