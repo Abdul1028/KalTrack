@@ -10,7 +10,8 @@ import {
   Platform,
   Alert,
   Switch,
-  Modal
+  Modal,
+  NativeModules
 } from 'react-native';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,7 +30,7 @@ import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import BarcodeScanner from '../../components/BarcodeScanner';
+import AppleHealthKit, { HealthKitPermissions } from 'react-native-health';
 
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 375;
@@ -42,10 +43,18 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const PERMISSIONS = {
+  permissions: {
+    read: ['Steps', 'Weight', 'Height', 'ActiveEnergyBurned', 'BasalEnergyBurned'],
+    write: ['Steps', 'Weight', 'Height'],
+  },
+};
+
 const AccountHeader = () => {
   const { user } = useUser();
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(50);
+  // AppleHealthKit.isAvailable(()=>{})
 
   useEffect(() => {
     opacity.value = withTiming(1, { duration: 500 });
@@ -108,6 +117,14 @@ export default function Account() {
   const [sliderValue, setSliderValue] = useState(1);
   const [showScanner, setShowScanner] = useState(false);
   const [scannedFood, setScannedFood] = useState<any>(null);
+  const [isHealthKitConnected, setIsHealthKitConnected] = useState(false);
+  const [healthData, setHealthData] = useState({
+    steps: 0,
+    weight: 0,
+    height: 0,
+    activeEnergy: 0,
+    basalEnergy: 0,
+  });
 
   useEffect(() => {
     fetchUserDetails();
@@ -345,6 +362,112 @@ export default function Account() {
     };
   }, []);
 
+  const initializeHealthKit = async () => {
+    if (Platform.OS !== 'ios') {
+      Alert.alert('Not Available', 'HealthKit is only available on iOS devices');
+      return;
+    }
+
+    try {
+      // First check if HealthKit is available
+      AppleHealthKit.isAvailable((error: string, result: boolean) => {
+        if (error) {
+          console.log('Error checking HealthKit availability:', error);
+          return;
+        }
+        
+        if (!result) {
+          Alert.alert('Not Available', 'HealthKit is not available on this device');
+          return;
+        }
+
+        // Initialize HealthKit with permissions
+        const PERMISSIONS = {
+          permissions: {
+            read: [
+              AppleHealthKit.Constants.Permissions.Steps,
+              AppleHealthKit.Constants.Permissions.Weight,
+              AppleHealthKit.Constants.Permissions.Height,
+              AppleHealthKit.Constants.Permissions.ActiveEnergyBurned,
+              AppleHealthKit.Constants.Permissions.BasalEnergyBurned
+            ],
+            write: [
+              AppleHealthKit.Constants.Permissions.Steps,
+              AppleHealthKit.Constants.Permissions.Weight,
+              AppleHealthKit.Constants.Permissions.Height
+            ],
+          },
+        };
+
+        AppleHealthKit.initHealthKit(PERMISSIONS, (error: string) => {
+          if (error) {
+            console.log('Error initializing HealthKit:', error);
+            Alert.alert('Error', 'Failed to initialize HealthKit');
+            return;
+          }
+          
+          console.log('HealthKit initialized successfully');
+          setIsHealthKitConnected(true);
+          fetchHealthData();
+        });
+      });
+
+    } catch (error) {
+      console.log('Error initializing HealthKit:', error);
+      Alert.alert('Error', 'Failed to initialize HealthKit');
+    }
+  };
+
+  const fetchHealthData = async () => {
+    if (!AppleHealthKit) return;
+
+    try {
+      const options = {
+        startDate: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
+        endDate: new Date().toISOString(),
+      };
+
+      // Fetch steps
+      AppleHealthKit.getStepCount(options, (err: any, results: any) => {
+        if (!err) {
+          setHealthData(prev => ({ ...prev, steps: results?.value || 0 }));
+        }
+      });
+
+      // Fetch weight
+      AppleHealthKit.getLatestWeight(options, (err: any, results: any) => {
+        if (!err) {
+          setHealthData(prev => ({ ...prev, weight: results?.value || 0 }));
+        }
+      });
+
+      // Fetch height
+      AppleHealthKit.getLatestHeight(options, (err: any, results: any) => {
+        if (!err) {
+          setHealthData(prev => ({ ...prev, height: results?.value || 0 }));
+        }
+      });
+
+      // Fetch active energy
+      AppleHealthKit.getActiveEnergyBurned(options, (err: any, results: any) => {
+        if (!err) {
+          setHealthData(prev => ({ ...prev, activeEnergy: results?.value || 0 }));
+        }
+      });
+
+      // Fetch basal energy
+      AppleHealthKit.getBasalEnergyBurned(options, (err: any, results: any) => {
+        if (!err) {
+          setHealthData(prev => ({ ...prev, basalEnergy: results?.value || 0 }));
+        }
+      });
+
+    } catch (error) {
+      console.log('Error fetching health data:', error);
+      Alert.alert('Error', 'Failed to fetch health data');
+    }
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <AccountHeader />
@@ -378,7 +501,17 @@ export default function Account() {
           {renderSettingItem('shield-checkmark-outline', 'Privacy', () => {})}
           {renderSettingItem('help-circle-outline', 'Help & Support', () => {})}
           {renderSettingItem('information-circle-outline', 'About', () => {})}
-          {renderSettingItem('barcode-outline', 'Scan Food', () => setShowScanner(true))}
+          {renderSettingItem('barcode-outline', 'Scan Food', () => {
+            // TODO: Uncomment and resolve Expo Modules Core / BarCode Scanner issues
+            // To re-enable:
+            // 1. Ensure expo-barcode-scanner is installed: 
+            //    `npx expo install expo-barcode-scanner`
+            // 2. Verify expo-modules-core is installed:
+            //    `npx expo install expo-modules-core`
+            // 3. Rebuild the project:
+            //    `npx expo prebuild --clean`
+            // setShowScanner(true)
+          })}
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
               <View style={styles.settingIcon}>
@@ -424,7 +557,65 @@ export default function Account() {
               </View>
             </View>
           )}
+
+          {Platform.OS === 'ios' && (
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <Ionicons name="fitness-outline" size={22} color="#666" />
+                </View>
+                <Text style={styles.settingText}>Connect HealthKit</Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Switch
+                  value={isHealthKitConnected}
+                  onValueChange={(value) => {
+                    if (value) {
+                      initializeHealthKit();
+                    } else {
+                      setIsHealthKitConnected(false);
+                      setHealthData({
+                        steps: 0,
+                        weight: 0,
+                        height: 0,
+                        activeEnergy: 0,
+                        basalEnergy: 0,
+                      });
+                    }
+                  }}
+                  trackColor={{ false: '#767577', true: '#FF6B6B' }}
+                  thumbColor={isHealthKitConnected ? '#ff4444' : '#f4f3f4'}
+                />
+              </View>
+            </View>
+          )}
         </View>
+
+        {isHealthKitConnected && (
+          <View style={styles.healthDataContainer}>
+            <Text style={styles.sectionTitle}>Health Data</Text>
+            <View style={styles.metricsContainer}>
+              {renderMetricCard(
+                'Steps',
+                `${healthData.steps}`,
+                'footsteps-outline',
+                '#4ECDC4'
+              )}
+              {renderMetricCard(
+                'Active Cal',
+                `${Math.round(healthData.activeEnergy)}`,
+                'flame-outline',
+                '#FF6B6B'
+              )}
+              {renderMetricCard(
+                'Basal Cal',
+                `${Math.round(healthData.basalEnergy)}`,
+                'battery-charging-outline',
+                '#45B7D1'
+              )}
+            </View>
+          </View>
+        )}
 
         <TouchableOpacity 
           style={styles.signOutButton}
@@ -439,7 +630,8 @@ export default function Account() {
         </View>
       </View>
 
-      {showScanner && (
+      {/* Commented out Modal for Barcode Scanner */}
+      {/* {showScanner && (
         <Modal
           animationType="slide"
           transparent={false}
@@ -473,7 +665,7 @@ export default function Account() {
             />
           </View>
         </Modal>
-      )}
+      )} */}
     </ScrollView>
   );
 }
@@ -645,6 +837,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     marginHorizontal: 20,
   },
+  
   reminderText: {
     fontSize: 16,
     color: '#666',
@@ -683,5 +876,9 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: 20,
+  },
+  healthDataContainer: {
+    marginTop: 20,
+    paddingHorizontal: 20,
   },
 });
