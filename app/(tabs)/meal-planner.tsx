@@ -21,6 +21,9 @@ import { collection, doc, setDoc, getDoc, getDocs, query, where, deleteDoc } fro
 import { db } from '../../firebaseConfig';
 import moment from 'moment';
 import { LinearGradient } from 'expo-linear-gradient';
+import Slider from '@react-native-community/slider';
+import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
 
@@ -49,6 +52,17 @@ interface MealNutrients {
   carbs: number;
 }
 
+const commonMeasures = [
+  { label: 'Grams', value: 'g' },
+  { label: 'Ounces', value: 'oz' },
+  { label: 'Pounds', value: 'lb' },
+  { label: 'Kilograms', value: 'kg' },
+  { label: 'Cups', value: 'cup' },
+  { label: 'Tablespoons', value: 'tbsp' },
+  { label: 'Teaspoons', value: 'tsp' },
+  { label: 'Pieces', value: 'piece' }
+];
+
 const MealPlanner = () => {
   const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
   const [modalVisible, setModalVisible] = useState(false);
@@ -68,7 +82,6 @@ const MealPlanner = () => {
     carbs: 0
   });
   const [showSearchView, setShowSearchView] = useState(false);
-  const [showSelectedFoodsModal, setShowSelectedFoodsModal] = useState(false);
 
   const mealTimes = [
     { id: 'breakfast', title: 'Breakfast', icon: 'sunny-outline' },
@@ -455,7 +468,17 @@ const MealPlanner = () => {
       {selectedFoods.length > 0 && (
         <TouchableOpacity
           style={styles.selectedFoodsSummaryButton}
-          onPress={() => setShowSelectedFoodsModal(true)}
+          onPress={() => {
+            setShowSearchView(false);
+            router.push({
+              pathname: "/selected-foods",
+              params: {
+                selectedFoods: JSON.stringify(selectedFoods),
+                mealType: selectedMealType,
+                date: selectedDate
+              }
+            });
+          }}
         >
           <Text style={styles.selectedFoodsSummaryText}>
             {selectedFoods.length} items selected
@@ -532,113 +555,6 @@ const MealPlanner = () => {
           </Text>
         </TouchableOpacity>
       )}
-
-      <Modal
-        visible={showSelectedFoodsModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSelectedFoodsModal(false)}
-      >
-        <View style={styles.selectedFoodsModalContainer}>
-          <View style={styles.selectedFoodsModalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderTitle}>Selected Foods</Text>
-              <TouchableOpacity 
-                onPress={() => setShowSelectedFoodsModal(false)}
-                style={styles.closeButton}
-              >
-                <Ionicons name="close" size={24} color="#2D3436" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.selectedFoodsScroll}>
-              {selectedFoods.map((food, index) => (
-                <View key={index} style={styles.selectedFoodCard}>
-                  <View style={styles.foodCardHeader}>
-                    {food.image && (
-                      <Image 
-                        source={{ uri: food.image }} 
-                        style={styles.selectedFoodImage}
-                        defaultSource={require('../../assets/images/APPLOGO.png')}
-                      />
-                    )}
-                    <View style={styles.selectedFoodInfo}>
-                      <Text style={styles.selectedFoodTitle}>{food.label}</Text>
-                      <Text style={styles.selectedFoodNutrients}>
-                        {Math.round(food.nutrients.ENERC_KCAL * food.quantity)} cal | 
-                        P: {Math.round(food.nutrients.PROCNT * food.quantity)}g | 
-                        F: {Math.round(food.nutrients.FAT * food.quantity)}g | 
-                        C: {Math.round(food.nutrients.CHOCDF * food.quantity)}g
-                      </Text>
-                    </View>
-                    <TouchableOpacity 
-                      onPress={() => handleRemoveFood(index)}
-                      style={styles.removeButton}
-                    >
-                      <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.servingContainer}>
-                    <Text style={styles.servingLabel}>Serving:</Text>
-                    <View style={styles.servingControls}>
-                      <TouchableOpacity 
-                        style={styles.servingButton}
-                        onPress={() => updateFoodQuantity(index, Math.max(0.5, food.quantity - 0.5))}
-                      >
-                        <Ionicons name="remove" size={20} color="#FF6B6B" />
-                      </TouchableOpacity>
-                      
-                      <TextInput
-                        style={styles.servingInput}
-                        value={food.quantity.toString()}
-                        onChangeText={(text) => {
-                          const newQuantity = parseFloat(text) || 0.5;
-                          updateFoodQuantity(index, newQuantity);
-                        }}
-                        keyboardType="numeric"
-                        returnKeyType="done"
-                      />
-                      
-                      <TouchableOpacity 
-                        style={styles.servingButton}
-                        onPress={() => updateFoodQuantity(index, food.quantity + 0.5)}
-                      >
-                        <Ionicons name="add" size={20} color="#FF6B6B" />
-                      </TouchableOpacity>
-                      
-                      <Text style={styles.measureLabel}>{food.measureLabel}</Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-
-              <View style={styles.totalNutrientsCard}>
-                <Text style={styles.totalNutrientsTitle}>Total Nutrients</Text>
-                <Text style={styles.totalNutrientsText}>
-                  Calories: {Math.round(totalNutrients.calories)} kcal
-                </Text>
-                <Text style={styles.totalNutrientsText}>
-                  Protein: {Math.round(totalNutrients.protein)}g
-                </Text>
-                <Text style={styles.totalNutrientsText}>
-                  Fat: {Math.round(totalNutrients.fat)}g
-                </Text>
-                <Text style={styles.totalNutrientsText}>
-                  Carbs: {Math.round(totalNutrients.carbs)}g
-                </Text>
-              </View>
-            </ScrollView>
-
-            <TouchableOpacity 
-              style={styles.doneButton}
-              onPress={() => setShowSelectedFoodsModal(false)}
-            >
-              <Text style={styles.doneButtonText}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 
@@ -1191,43 +1107,49 @@ const styles = StyleSheet.create({
     color: '#636E72',
   },
   servingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 10,
+    paddingTop: 15,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
   },
   servingLabel: {
     fontSize: 14,
+    fontWeight: '600',
     color: '#2D3436',
+    marginBottom: 10,
   },
-  servingControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  sliderContainer: {
+    marginVertical: 10,
   },
-  servingButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#FFF0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
+  slider: {
+    width: '100%',
+    height: 40,
   },
-  servingInput: {
-    width: 50,
-    height: 30,
-    backgroundColor: '#fff',
-    borderRadius: 8,
+  quantityText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6B6B',
     textAlign: 'center',
+    marginBottom: 5,
+  },
+  sliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+  },
+  sliderLabel: {
+    fontSize: 12,
+    color: '#636E72',
+  },
+  measurePickerContainer: {
+    marginTop: 10,
     borderWidth: 1,
     borderColor: '#F0F0F0',
+    borderRadius: 8,
+    backgroundColor: '#FAFAFA',
   },
-  measureLabel: {
-    fontSize: 14,
-    color: '#636E72',
-    marginLeft: 4,
+  measurePicker: {
+    height: 40,
+    width: '100%',
   },
   totalNutrientsCard: {
     backgroundColor: '#FFF0F0',

@@ -133,7 +133,12 @@ export default function RootLayout() {
           headerShown:false,
         }
       } />
-      
+
+    <Stack.Screen name="selected-foods" options={
+        {
+          headerShown:false,
+        }
+      } />
     </Stack>
     </GestureHandlerRootView>
 
