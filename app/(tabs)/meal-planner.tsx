@@ -68,6 +68,7 @@ const MealPlanner = () => {
     carbs: 0
   });
   const [showSearchView, setShowSearchView] = useState(false);
+  const [showSelectedFoodsModal, setShowSelectedFoodsModal] = useState(false);
 
   const mealTimes = [
     { id: 'breakfast', title: 'Breakfast', icon: 'sunny-outline' },
@@ -451,90 +452,18 @@ const MealPlanner = () => {
         <Text style={styles.searchTitle}>Search Results</Text>
       </View>
 
-      {/* Selected Foods Summary Section */}
       {selectedFoods.length > 0 && (
-        <View style={styles.selectedFoodsSummary}>
-          <Text style={styles.summaryTitle}>Selected Foods ({selectedFoods.length})</Text>
-          
-          {/* Selected Foods Cards */}
-          <ScrollView style={styles.selectedFoodsCardsScroll}>
-            {selectedFoods.map((food, index) => (
-              <View key={index} style={styles.selectedFoodCard}>
-                <View style={styles.foodCardHeader}>
-                  {food.image ? (
-                    <Image 
-                      source={{ uri: food.image }} 
-                      style={styles.selectedFoodImage}
-                      defaultSource={require('../../assets/images/APPLOGO.png')}
-                    />
-                  ) : (
-                    <View style={[styles.selectedFoodImage, styles.defaultFoodImage]}>
-                      <Ionicons name="restaurant" size={24} color="#FF6B6B" />
-                    </View>
-                  )}
-                  <View style={styles.selectedFoodInfo}>
-                    <Text style={styles.selectedFoodTitle}>{food.label}</Text>
-                    <Text style={styles.selectedFoodNutrients}>
-                      {Math.round(food.nutrients.ENERC_KCAL * food.quantity)} cal | 
-                      P: {Math.round(food.nutrients.PROCNT * food.quantity)}g | 
-                      F: {Math.round(food.nutrients.FAT * food.quantity)}g | 
-                      C: {Math.round(food.nutrients.CHOCDF * food.quantity)}g
-                    </Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.removeButton}
-                    onPress={() => handleRemoveFood(index)}
-                  >
-                    <Ionicons name="close-circle" size={24} color="#FF6B6B" />
-                  </TouchableOpacity>
-                </View>
-                
-                <View style={styles.servingContainer}>
-                  <Text style={styles.servingLabel}>Serving Size:</Text>
-                  <View style={styles.quantityControls}>
-                    <TouchableOpacity 
-                      style={styles.quantityButton}
-                      onPress={() => updateFoodQuantity(index, Math.max(0.5, food.quantity - 0.5))}
-                    >
-                      <Ionicons name="remove" size={20} color="#FF6B6B" />
-                    </TouchableOpacity>
-                    
-                    <TextInput
-                      style={styles.quantityInput}
-                      value={food.quantity.toString()}
-                      onChangeText={(text) => {
-                        const newQuantity = parseFloat(text) || 0.5;
-                        updateFoodQuantity(index, newQuantity);
-                      }}
-                      keyboardType="numeric"
-                      returnKeyType='done'
-                    />
-                    
-                    <TouchableOpacity 
-                      style={styles.quantityButton}
-                      onPress={() => updateFoodQuantity(index, food.quantity + 0.5)}
-                    >
-                      <Ionicons name="add" size={20} color="#FF6B6B" />
-                    </TouchableOpacity>
-                    
-                    <Text style={styles.measureLabel}>{food.measureLabel}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-
-          {/* Nutrients Summary */}
-          <View style={styles.nutrientsSummary}>
-            <Text style={styles.nutrientsSummaryTitle}>Total Nutrients</Text>
-            <Text style={styles.nutrientText}>
-              Calories: {Math.round(totalNutrients.calories)} | 
-              Protein: {Math.round(totalNutrients.protein)}g | 
-              Fat: {Math.round(totalNutrients.fat)}g | 
-              Carbs: {Math.round(totalNutrients.carbs)}g
-            </Text>
-          </View>
-        </View>
+        <TouchableOpacity
+          style={styles.selectedFoodsSummaryButton}
+          onPress={() => setShowSelectedFoodsModal(true)}
+        >
+          <Text style={styles.selectedFoodsSummaryText}>
+            {selectedFoods.length} items selected
+          </Text>
+          <Text style={styles.totalCaloriesText}>
+            {Math.round(totalNutrients.calories)} cal
+          </Text>
+        </TouchableOpacity>
       )}
 
       <View style={styles.searchInputContainer}>
@@ -543,9 +472,7 @@ const MealPlanner = () => {
           placeholder="Search foods..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          onSubmitEditing={() => {
-            searchFoods();
-          }}
+          onSubmitEditing={searchFoods}
           autoFocus
           returnKeyType="search"
         />
@@ -605,6 +532,113 @@ const MealPlanner = () => {
           </Text>
         </TouchableOpacity>
       )}
+
+      <Modal
+        visible={showSelectedFoodsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSelectedFoodsModal(false)}
+      >
+        <View style={styles.selectedFoodsModalContainer}>
+          <View style={styles.selectedFoodsModalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalHeaderTitle}>Selected Foods</Text>
+              <TouchableOpacity 
+                onPress={() => setShowSelectedFoodsModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#2D3436" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.selectedFoodsScroll}>
+              {selectedFoods.map((food, index) => (
+                <View key={index} style={styles.selectedFoodCard}>
+                  <View style={styles.foodCardHeader}>
+                    {food.image && (
+                      <Image 
+                        source={{ uri: food.image }} 
+                        style={styles.selectedFoodImage}
+                        defaultSource={require('../../assets/images/APPLOGO.png')}
+                      />
+                    )}
+                    <View style={styles.selectedFoodInfo}>
+                      <Text style={styles.selectedFoodTitle}>{food.label}</Text>
+                      <Text style={styles.selectedFoodNutrients}>
+                        {Math.round(food.nutrients.ENERC_KCAL * food.quantity)} cal | 
+                        P: {Math.round(food.nutrients.PROCNT * food.quantity)}g | 
+                        F: {Math.round(food.nutrients.FAT * food.quantity)}g | 
+                        C: {Math.round(food.nutrients.CHOCDF * food.quantity)}g
+                      </Text>
+                    </View>
+                    <TouchableOpacity 
+                      onPress={() => handleRemoveFood(index)}
+                      style={styles.removeButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#FF6B6B" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.servingContainer}>
+                    <Text style={styles.servingLabel}>Serving:</Text>
+                    <View style={styles.servingControls}>
+                      <TouchableOpacity 
+                        style={styles.servingButton}
+                        onPress={() => updateFoodQuantity(index, Math.max(0.5, food.quantity - 0.5))}
+                      >
+                        <Ionicons name="remove" size={20} color="#FF6B6B" />
+                      </TouchableOpacity>
+                      
+                      <TextInput
+                        style={styles.servingInput}
+                        value={food.quantity.toString()}
+                        onChangeText={(text) => {
+                          const newQuantity = parseFloat(text) || 0.5;
+                          updateFoodQuantity(index, newQuantity);
+                        }}
+                        keyboardType="numeric"
+                        returnKeyType="done"
+                      />
+                      
+                      <TouchableOpacity 
+                        style={styles.servingButton}
+                        onPress={() => updateFoodQuantity(index, food.quantity + 0.5)}
+                      >
+                        <Ionicons name="add" size={20} color="#FF6B6B" />
+                      </TouchableOpacity>
+                      
+                      <Text style={styles.measureLabel}>{food.measureLabel}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+
+              <View style={styles.totalNutrientsCard}>
+                <Text style={styles.totalNutrientsTitle}>Total Nutrients</Text>
+                <Text style={styles.totalNutrientsText}>
+                  Calories: {Math.round(totalNutrients.calories)} kcal
+                </Text>
+                <Text style={styles.totalNutrientsText}>
+                  Protein: {Math.round(totalNutrients.protein)}g
+                </Text>
+                <Text style={styles.totalNutrientsText}>
+                  Fat: {Math.round(totalNutrients.fat)}g
+                </Text>
+                <Text style={styles.totalNutrientsText}>
+                  Carbs: {Math.round(totalNutrients.carbs)}g
+                </Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={styles.doneButton}
+              onPress={() => setShowSelectedFoodsModal(false)}
+            >
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 
@@ -686,7 +720,136 @@ const MealPlanner = () => {
   );
 };
 
-const updatedStyles = StyleSheet.create({
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingTop: 40,
+    paddingHorizontal: 20,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2D3436',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  selectedDateContainer: {
+    backgroundColor: '#FFF0F0',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+  },
+  selectedDateText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6B6B',
+    textAlign: 'center',
+  },
+  mealsContainer: {
+    gap: 20,
+    marginBottom: 20,
+  },
+  mealCard: {
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  mealHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  mealIconContainer: {
+    backgroundColor: '#FFF0F0',
+    borderRadius: 12,
+    padding: 8,
+    marginRight: 10,
+  },
+  mealInfo: {
+    flex: 1,
+  },
+  mealTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2D3436',
+  },
+  mealSubtitle: {
+    fontSize: 14,
+    color: '#636E72',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  plannedMealItem: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  plannedMealHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  plannedMealInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  plannedMealTime: {
+    fontSize: 14,
+    color: '#636E72',
+    marginRight: 10,
+  },
+  deleteButton: {
+    padding: 5,
+  },
+  foodsList: {
+    marginBottom: 10,
+  },
+  foodItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  smallFoodImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    marginRight: 10,
+  },
+  foodDetails: {
+    flex: 1,
+  },
+  foodName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#2D3436',
+  },
+  foodNutrients: {
+    fontSize: 12,
+    color: '#636E72',
+  },
+  totalNutrients: {
+    backgroundColor: '#FFF0F0',
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 10,
+  },
+  totalNutrientsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF6B6B',
+    marginBottom: 5,
+  },
+  nutrientText: {
+    fontSize: 12,
+    color: '#636E72',
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -709,6 +872,34 @@ const updatedStyles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2D3436',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    marginBottom: 20,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    marginRight: 10,
+  },
+  searchButton: {
+    backgroundColor: '#FF6B6B',
+    borderRadius: 12,
+    padding: 10,
+  },
   modalMainContent: {
     flexDirection: 'column',
     gap: 12,
@@ -726,10 +917,16 @@ const updatedStyles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
   },
-  searchResultsScroll: {
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2D3436',
+    marginBottom: 10,
+  },
+  selectedFoodsScroll: {
     flex: 1,
   },
-  searchResultItem: {
+  selectedFoodItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
@@ -763,237 +960,15 @@ const updatedStyles = StyleSheet.create({
     fontSize: 13,
     color: '#636E72',
   },
-  loader: {
-    marginTop: 20,
-  },
-  emptyMessage: {
-    textAlign: 'center',
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 20,
-  },
-});
-
-const styles = StyleSheet.create({
-  ...updatedStyles,
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#2D3436',
-    padding: 16,
-    textAlign: 'center',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  selectedDateContainer: {
-    margin: 16,
-    padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  selectedDateText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FF6B6B',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  mealsContainer: {
-    padding: 16,
-    alignItems: 'center',
-    width: '100%',
-  },
-  mealCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    width: '100%',
-    alignSelf: 'center',
-  },
-  mealHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  mealIconContainer: {
-    width: 48,
-    height: 48,
-    backgroundColor: '#FFF0F0',
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  mealInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  mealTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2D3436',
-    letterSpacing: 0.5,
-  },
-  mealContent: {
-    width: '100%',
-  },
-  plannedMealItem: {
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    width: '100%',
-    alignSelf: 'center',
-  },
-  foodsList: {
-    width: '100%',
-  },
-  foodItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-    width: '100%',
-  },
-  smallFoodImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  foodDetails: {
-    flex: 1,
-  },
-  foodName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#2D3436',
-    marginBottom: 4,
-  },
-  foodNutrients: {
-    fontSize: 14,
-    color: '#636E72',
-  },
-  totalNutrients: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#FFF0F0',
-    borderRadius: 12,
-  },
-  totalNutrientsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FF6B6B',
-    marginBottom: 8,
-  },
-  nutrientText: {
-    fontSize: 14,
-    color: '#636E72',
-    lineHeight: 20,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#2D3436',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-    paddingHorizontal: 4,
-  },
-  searchInput: {
-    flex: 1,
-    height: 50,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  searchButton: {
-    width: 50,
-    height: 50,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#FF6B6B',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  selectedFoodsContainer: {
-    marginVertical: 16,
-    padding: 16,
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2D3436',
-    marginBottom: 12,
-  },
-  selectedFoodItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
-  },
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
   quantityInput: {
-    width: 60,
-    height: 36,
-    backgroundColor: '#F8F9FA',
+    width: 50,
+    height: 30,
+    backgroundColor: '#fff',
     borderRadius: 8,
     textAlign: 'center',
     borderWidth: 1,
@@ -1004,124 +979,24 @@ const styles = StyleSheet.create({
     color: '#636E72',
   },
   nutrientsSummary: {
-    marginTop: 16,
-    padding: 16,
     backgroundColor: '#FFF0F0',
-    borderRadius: 16,
+    borderRadius: 12,
+    padding: 15,
+    marginTop: 10,
   },
   summaryTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FF6B6B',
     marginBottom: 8,
   },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  button: {
-    flex: 1,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  cancelButton: {
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#DFE6E9',
-  },
-  addButton: {
-    backgroundColor: '#FF6B6B',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  addButtonText: {
-    color: '#fff',
-  },
-  mealSubtitle: {
+  nutrientText: {
     fontSize: 14,
     color: '#636E72',
-    fontStyle: 'italic',
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  searchResults: {
-    maxHeight: height * 0.4,
-    marginBottom: 16,
-  },
-  foodImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  defaultFoodImage: {
-    backgroundColor: '#FFF0F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#636E72',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 20,
-    width: '95%',
-    maxHeight: height * 0.8,
-  },
-  modalMainContent: {
-    flex: 1,
-    flexDirection: 'column',
-    gap: 16,
-    marginVertical: 16,
-  },
-  selectedFoodsSection: {
-    flex: 1,
-    maxHeight: height * 0.3,
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
-    padding: 16,
-  },
-  searchResultsSection: {
-    flex: 1,
-    maxHeight: height * 0.3,
-    backgroundColor: '#FAFAFA',
-    borderRadius: 16,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#2D3436',
-    marginBottom: 12,
-  },
-  selectedFoodsScroll: {
-    flex: 1,
+    marginBottom: 4,
   },
   searchResultsScroll: {
     flex: 1,
-  },
-  emptyMessage: {
-    textAlign: 'center',
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 20,
   },
   searchResultItem: {
     flexDirection: 'row',
@@ -1133,97 +1008,168 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
+  loader: {
+    marginTop: 20,
+  },
+  emptyMessage: {
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  button: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#FFF0F0',
+    marginRight: 10,
+  },
+  cancelButtonText: {
+    color: '#FF6B6B',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  addButton: {
+    backgroundColor: '#FF6B6B',
+    marginLeft: 10,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   searchViewContainer: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop: 40,
+    paddingHorizontal: 20,
   },
   searchHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-    backgroundColor: '#fff',
+    marginBottom: 20,
   },
   backButton: {
-    padding: 8,
-    marginRight: 16,
+    marginRight: 10,
   },
   searchTitle: {
-    fontSize: 20,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2D3436',
+  },
+  selectedFoodsSummaryButton: {
+    backgroundColor: '#FFF0F0',
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectedFoodsSummaryText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6B6B',
+  },
+  totalCaloriesText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#2D3436',
   },
   searchInputContainer: {
     flexDirection: 'row',
-    padding: 16,
-    gap: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    marginBottom: 20,
   },
   fullSearchInput: {
     flex: 1,
-    height: 50,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#F0F0F0',
+    height: 40,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    marginRight: 10,
   },
   fullSearchResults: {
     flex: 1,
-    padding: 16,
+    marginBottom: 20,
   },
   fullSearchItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
   },
-  selectedFoodsSummary: {
+  doneButton: {
+    backgroundColor: '#FF6B6B',
+    margin: 20,
+    padding: 15,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
+  doneButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  selectedFoodsModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  selectedFoodsModalContent: {
     backgroundColor: '#fff',
-    padding: 16,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    maxHeight: height * 0.8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
-    maxHeight: height * 0.4, // Limit height to 40% of screen
   },
-  selectedFoodsCardsScroll: {
-    maxHeight: height * 0.3,
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2D3436',
+  },
+  closeButton: {
+    padding: 5,
+  },
+  selectedFoodsScroll: {
+    padding: 20,
   },
   selectedFoodCard: {
     backgroundColor: '#FAFAFA',
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    padding: 15,
+    marginBottom: 15,
     borderWidth: 1,
     borderColor: '#F0F0F0',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
   },
   foodCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   selectedFoodImage: {
     width: 50,
@@ -1236,7 +1182,7 @@ const styles = StyleSheet.create({
   },
   selectedFoodTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#2D3436',
     marginBottom: 4,
   },
@@ -1244,28 +1190,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#636E72',
   },
-  removeButton: {
-    padding: 4,
-  },
   servingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F0F0F0',
   },
   servingLabel: {
     fontSize: 14,
     color: '#2D3436',
-    fontWeight: '500',
   },
-  quantityControls: {
+  servingControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  quantityButton: {
+  servingButton: {
     width: 30,
     height: 30,
     borderRadius: 15,
@@ -1273,7 +1215,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  quantityInput: {
+  servingInput: {
     width: 50,
     height: 30,
     backgroundColor: '#fff',
@@ -1287,46 +1229,22 @@ const styles = StyleSheet.create({
     color: '#636E72',
     marginLeft: 4,
   },
-  nutrientsSummary: {
+  totalNutrientsCard: {
     backgroundColor: '#FFF0F0',
-    padding: 12,
     borderRadius: 12,
-    marginTop: 12,
+    padding: 15,
+    marginTop: 10,
   },
-  nutrientsSummaryTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FF6B6B',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  nutrientText: {
-    fontSize: 13,
-    color: '#636E72',
-    textAlign: 'center',
-  },
-  doneButton: {
-    position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: '#FF6B6B',
-    padding: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  doneButtonText: {
-    color: '#fff',
+  totalNutrientsTitle: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FF6B6B',
+    marginBottom: 8,
+  },
+  totalNutrientsText: {
+    fontSize: 14,
+    color: '#636E72',
+    marginBottom: 4,
   },
 });
 
