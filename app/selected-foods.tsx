@@ -8,12 +8,18 @@ import {
   Image,
   Dimensions,
   Platform,
-  Modal
+  Modal,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import Slider from '@react-native-community/slider';
 import { BlurView } from 'expo-blur';
+import { doc, setDoc, addDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig'
+import { useUser } from '@clerk/clerk-expo';
+import moment from 'moment';
 
 const { width, height } = Dimensions.get('window');
 
@@ -51,6 +57,7 @@ const MEASURE_RANGES = {
 };
 
 export default function SelectedFoods() {
+  const { user } = useUser();
   const params = useLocalSearchParams();
   const [foods, setFoods] = useState([]);
   const [totalNutrients, setTotalNutrients] = useState({
@@ -61,6 +68,8 @@ export default function SelectedFoods() {
   });
   const [showMeasurePicker, setShowMeasurePicker] = useState(false);
   const [activeFoodIndex, setActiveFoodIndex] = useState(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (params.selectedFoods) {
@@ -131,6 +140,116 @@ export default function SelectedFoods() {
     setFoods(newFoods);
     updateTotalNutrients(newFoods);
   };
+
+  const handleCreateMeal = async () => {
+    try {
+      if (!user) {
+        Alert.alert('Error', 'Please sign in to add meals');
+        return;
+      }
+
+      setIsSaving(true);
+
+      const mealId = `${params.date}-${params.mealType}-${Date.now()}`;
+      const mealRef = doc(db, `users/${user.id}/plannedMeals/${mealId}`);
+      
+      const mealData = {
+        id: mealId,
+        foods: foods.map(food => ({
+          foodId: food.foodId,
+          label: food.label,
+          quantity: food.quantity,
+          measureLabel: food.measureLabel,
+          nutrients: {
+            calories: food.nutrients.ENERC_KCAL * food.quantity,
+            protein: food.nutrients.PROCNT * food.quantity,
+            fat: food.nutrients.FAT * food.quantity,
+            carbs: food.nutrients.CHOCDF * food.quantity
+          },
+          image: food.image || null
+        })),
+        totalNutrients: {
+          calories: Math.round(totalNutrients.calories),
+          protein: Math.round(totalNutrients.protein),
+          fat: Math.round(totalNutrients.fat),
+          carbs: Math.round(totalNutrients.carbs)
+        },
+        mealType: params.mealType,
+        date: params.date,
+        createdAt: new Date().toISOString(),
+        userId: user.id
+      };
+
+      await setDoc(mealRef, mealData);
+
+      Alert.alert(
+        'Success',
+        'Meal has been added to your plan!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setIsSaving(false);
+              setShowConfirmModal(false);
+              router.back();
+            }
+          }
+        ],
+        { cancelable: false }
+      );
+
+    } catch (error) {
+      console.error('Error saving meal:', error);
+      Alert.alert('Error', 'Failed to save meal');
+      setIsSaving(false);
+    }
+  };
+
+  const ConfirmationModal = () => (
+    <Modal
+      visible={showConfirmModal}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowConfirmModal(false)}
+    >
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowConfirmModal(false)}
+      >
+        <View style={styles.confirmationCard}>
+          <Text style={styles.confirmationTitle}>Confirm Meal Plan</Text>
+          <Text style={styles.confirmationText}>
+            Are you sure these portions are correct?
+          </Text>
+          <View style={styles.confirmationButtons}>
+            <TouchableOpacity 
+              style={[styles.confirmButton, styles.confirmButtonCancel]}
+              onPress={() => setShowConfirmModal(false)}
+              disabled={isSaving}
+            >
+              <Text style={styles.confirmButtonTextCancel}>Adjust More</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.confirmButton, 
+                styles.confirmButtonConfirm,
+                isSaving && styles.confirmButtonDisabled
+              ]}
+              onPress={handleCreateMeal}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#FFF" size="small" />
+              ) : (
+                <Text style={styles.confirmButtonTextConfirm}>Plan This Meal</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
 
   return (
     <View style={styles.container}>
@@ -249,10 +368,10 @@ export default function SelectedFoods() {
 
       {/* Done Button */}
       <TouchableOpacity 
-        style={styles.doneButton}
-        onPress={() => router.back()}
+        style={styles.createMealButton}
+        onPress={() => setShowConfirmModal(true)}
       >
-        <Text style={styles.doneButtonText}>Save Changes</Text>
+        <Text style={styles.createMealButtonText}>Create Meal</Text>
       </TouchableOpacity>
 
       <Modal
@@ -314,6 +433,8 @@ export default function SelectedFoods() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <ConfirmationModal />
     </View>
   );
 }
@@ -463,7 +584,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#2D3436',
   },
-  doneButton: {
+  createMealButton: {
     backgroundColor: '#FF6B6B',
     margin: 12,
     padding: 16,
@@ -475,7 +596,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  doneButtonText: {
+  createMealButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
@@ -524,5 +645,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#FF6B6B',
+  },
+  confirmationCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 20,
+    width: width * 0.85,
+    alignItems: 'center',
+  },
+  confirmationTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2D3436',
+    marginBottom: 12,
+  },
+  confirmationText: {
+    fontSize: 16,
+    color: '#636E72',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  confirmationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  confirmButton: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 6,
+  },
+  confirmButtonCancel: {
+    backgroundColor: '#F0F0F0',
+  },
+  confirmButtonConfirm: {
+    backgroundColor: '#FF6B6B',
+  },
+  confirmButtonTextCancel: {
+    color: '#636E72',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  confirmButtonTextConfirm: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  confirmButtonDisabled: {
+    opacity: 0.7,
   },
 }); 

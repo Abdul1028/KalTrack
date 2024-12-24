@@ -29,7 +29,21 @@ const _layout = () => {
           tabBarInactiveTintColor: 'gray',
         }}
       />
-      <Tabs.Screen
+      
+        <Tabs.Screen
+        name="meal-planner"
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="restaurant-outline" size={size} color={color} />
+          ),
+          tabBarLabel: 'Meal Plan',
+          tabBarActiveTintColor: '#FF6B6B',
+          tabBarInactiveTintColor: '#95A5A6',
+        }}
+      />
+
+<Tabs.Screen
         name="account"
         options={{
           headerShown: false,
@@ -38,13 +52,6 @@ const _layout = () => {
           ),
           tabBarActiveTintColor: 'tomato',
           tabBarInactiveTintColor: 'gray',
-        }}
-      />
-      <Tabs.Screen
-        name="recipes"
-        options={{
-          title: 'Recipes',
-          tabBarIcon: ({ color }) => <Ionicons name="restaurant" size={24} color={color} />,
         }}
       />
    </Tabs>
