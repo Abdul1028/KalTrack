@@ -31,6 +31,7 @@ import * as Notifications from 'expo-notifications';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AppleHealthKit, { HealthKitPermissions } from 'react-native-health';
+import BarcodeScanner from '@/components/BarcodeScanner';
 
 const { width, height } = Dimensions.get('window');
 const isSmallDevice = width < 375;
@@ -510,7 +511,7 @@ export default function Account() {
             //    `npx expo install expo-modules-core`
             // 3. Rebuild the project:
             //    `npx expo prebuild --clean`
-            // setShowScanner(true)
+            setShowScanner(true)
           })}
           <View style={styles.settingItem}>
             <View style={styles.settingLeft}>
@@ -631,7 +632,7 @@ export default function Account() {
       </View>
 
       {/* Commented out Modal for Barcode Scanner */}
-      {/* {showScanner && (
+      {showScanner && (
         <Modal
           animationType="slide"
           transparent={false}
@@ -640,6 +641,7 @@ export default function Account() {
         >
           <View style={{ flex: 1 }}>
             <BarcodeScanner
+            
               onFoodFound={(foodData) => {
                 setScannedFood(foodData);
                 setShowScanner(false);
@@ -665,7 +667,7 @@ export default function Account() {
             />
           </View>
         </Modal>
-      )} */}
+      )} 
     </ScrollView>
   );
 }

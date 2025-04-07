@@ -229,7 +229,6 @@ const MealPlanner = () => {
         const url = `https://api.edamam.com/api/food-database/v2/parser?app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}&ingr=${encodeURIComponent(localSearchQuery)}`;
         const response = await fetch(url);
         const data = await response.json();
-        
         if (data && data.hints && Array.isArray(data.hints)) {
           const mappedResults = data.hints.map((hint: any) => ({
             foodId: hint.food.foodId,
