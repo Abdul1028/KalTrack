@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   SafeAreaView, 
   StyleSheet, 
@@ -25,7 +25,7 @@ import { scheduleMidnightNotification } from '../nutritionval';
 import axios from 'axios';
 import { StatusBar } from 'expo-status-bar';
 import { Pedometer } from 'expo-sensors';
-import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebaseConfig';
 import moment from 'moment';
 
@@ -83,6 +83,15 @@ type StepCountData = {
   error: string | null;
 };
 
+// Define props for QuickStats
+interface QuickStatsProps {
+  stepCount: StepCountData;
+  waterIntake: number;
+  waterGoal: number;
+  isWaterLoading: boolean;
+  onUpdateWater: (change: number) => void;
+}
+
 const FixedHeader = () => {
   const { user } = useUser();
 
@@ -119,11 +128,17 @@ const FixedHeader = () => {
   );
 };
 
-const QuickStats = ({ stepCount }: { stepCount: StepCountData }) => (
+const QuickStats = ({ 
+  stepCount, 
+  waterIntake, 
+  waterGoal, 
+  isWaterLoading, 
+  onUpdateWater 
+}: QuickStatsProps) => (
   <View style={styles.quickStats}>
     <View style={styles.statCard}>
       <MaterialCommunityIcons name="fire" size={24} color="#FF6B6B" />
-      <Text style={styles.statValue}>1,200</Text>
+      <Text style={styles.statValue}>1,200</Text> 
       <Text style={styles.statLabel}>Calories Left</Text>
     </View>
     <View style={styles.statCard}>
@@ -137,16 +152,28 @@ const QuickStats = ({ stepCount }: { stepCount: StepCountData }) => (
       )}
       <Text style={styles.statLabel}>Steps</Text>
     </View>
-    <View style={styles.statCard}>
-      <MaterialCommunityIcons name="water" size={24} color="#45B7D1" />
-      <Text style={styles.statValue}>4/8</Text>
+    <View style={[styles.statCard, styles.waterStatCard]}>
+      <MaterialCommunityIcons name="water" size={24} color="#45B7D1" style={styles.waterIcon} />
+      {isWaterLoading ? (
+        <ActivityIndicator size="small" color="#45B7D1" style={styles.waterValueContainer}/>
+      ) : (
+        <View style={styles.waterValueContainer}>
+          <TouchableOpacity onPress={() => onUpdateWater(-1)} style={styles.waterButton}>
+            <Ionicons name="remove-circle-outline" size={22} color="#45B7D1" />
+          </TouchableOpacity>
+          <Text style={styles.statValue}>{`${waterIntake}/${waterGoal}`}</Text>
+          <TouchableOpacity onPress={() => onUpdateWater(1)} style={styles.waterButton}>
+            <Ionicons name="add-circle-outline" size={22} color="#45B7D1" />
+          </TouchableOpacity>
+        </View>
+      )}
       <Text style={styles.statLabel}>Water (cups)</Text>
     </View>
   </View>
 );
 
 const TodaysMeals = () => {
-  const [meals, setMeals] = useState([]);
+  const [meals, setMeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useUser();
 
@@ -180,11 +207,11 @@ const TodaysMeals = () => {
     }
   };
 
-  const renderMealCard = ({ item }) => (
+  const renderMealCard = ({ item }: { item: any }) => (
     <View style={styles.mealCard}>
       <View style={styles.mealImageContainer}>
         <Image 
-          source={{ uri: mealImages[item.mealType] || mealImages.snacks }}
+          source={{ uri: mealImages[item.mealType as keyof typeof mealImages] || mealImages.snacks }}
           style={styles.mealImage}
           resizeMode="cover"
         />
@@ -229,6 +256,15 @@ const TodaysMeals = () => {
   );
 };
 
+// Define interface for MealCategory item
+interface MealCategory {
+  id: string;
+  label: string;
+  icon: string; // Use string for simplicity
+  gradient: string[]; // Keep as string array to match data
+  image?: string; // Add optional image property
+}
+
 const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedWeight, setSelectedWeight] = useState(100);
@@ -242,6 +278,9 @@ const Home = () => {
     loading: true,
     error: null
   });
+  const [waterIntake, setWaterIntake] = useState(0);
+  const [waterGoal, setWaterGoal] = useState(8); // Default goal
+  const [isWaterLoading, setIsWaterLoading] = useState(true);
 
   const {user} = useUser();
 
@@ -252,11 +291,81 @@ const Home = () => {
     outputRange: [0, -50]
   });
 
-  const onRefresh = async () => {
-  setRefreshing(true);
-  await fetchDishes();
-  setRefreshing(false);
+  const getCurrentDateDocId = () => moment().format('DD-MM-YYYY');
+
+  // Fetch Daily Summary Data (including water)
+  const fetchDailyData = useCallback(async () => {
+    if (!user) return;
+    setIsWaterLoading(true);
+    try {
+      const dateId = getCurrentDateDocId();
+      const dailyDocRef = doc(db, 'users', user.id, 'NutritionData', dateId);
+      const docSnap = await getDoc(dailyDocRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setWaterIntake(data.waterIntake || 0);
+        // TODO: Fetch other daily summary data like calories left here
+      } else {
+        // If no doc, water intake is 0 for the day
+        setWaterIntake(0); 
+      }
+    } catch (error) {
+      console.error("Error fetching daily data:", error);
+      // Optionally set an error state
+    } finally {
+      setIsWaterLoading(false);
+    }
+  }, [user]);
+
+  // Update Water Intake in Firestore
+  const handleUpdateWater = async (change: number) => {
+    if (!user) return;
+
+    // Prevent incrementing if goal is already met or exceeded
+    if (change > 0 && waterIntake >= waterGoal) {
+      // Optionally show a different message like "Goal already reached!"
+      // Alert.alert("Goal Reached", "You've already met your water goal for today!");
+      return; 
+    }
+    
+    const newIntake = Math.max(0, waterIntake + change); // Ensure intake doesn't go below 0
+    const justReachedGoal = change > 0 && newIntake === waterGoal && waterIntake < waterGoal;
+
+    setWaterIntake(newIntake); // Optimistic update
+
+    // Show alert if goal was just reached
+    if (justReachedGoal) {
+      Alert.alert("Hurray!", "You are done for the day");
+    }
+
+    try {
+      const dateId = getCurrentDateDocId();
+      const dailyDocRef = doc(db, 'users', user.id, 'NutritionData', dateId);
+      
+      await setDoc(dailyDocRef, { 
+        waterIntake: newIntake,
+        updatedAt: Timestamp.now() // Add or update timestamp
+      }, { merge: true }); // Use merge to avoid overwriting other fields
+
+    } catch (error) {
+      console.error("Error updating water intake:", error);
+      Alert.alert("Error", "Could not update water intake. Please try again.");
+      // Revert optimistic update if needed (or refetch)
+      fetchDailyData(); 
+    }
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    // Combine fetches
+    await Promise.all([
+      fetchDishes(), // Keep existing refresh logic if needed
+      fetchDailyData(), // Fetch water data
+      // Add other refresh fetches here if necessary
+    ]);
+    setRefreshing(false);
+  }, [user, fetchDailyData]); // Add fetchDailyData to dependency array
 
   const formatToTwoDecimals = (num:any) => {
     if (isNaN(num)) return '0.00'; // Handle non-numeric values
@@ -298,10 +407,10 @@ const Home = () => {
 
   useEffect(() => {
     if (user) {
-      // Schedule the notification after login
       scheduleMidnightNotification(user.id);
+      fetchDailyData(); // Fetch initial water data when user is available
     }
-  }, [user]);
+  }, [user, fetchDailyData]); // Add fetchDailyData dependency
 
   useEffect(() => {
     let subscription: any = null;
@@ -404,9 +513,9 @@ const Home = () => {
 
   }
 
-  const [selectedMealCategory, setSelectedMealCategory] = useState(null);
+  const [selectedMealCategory, setSelectedMealCategory] = useState<string | null>(null);
 
-  const renderMealCategory = ({ item }) => (
+  const renderMealCategory = ({ item }: { item: MealCategory }) => (
     <TouchableOpacity 
       onPress={() => {
         setSelectedMealCategory(item.id);
@@ -421,75 +530,16 @@ const Home = () => {
       ]}
     >
       <LinearGradient
-        colors={item.gradient}
+        colors={item.gradient as any}
         style={styles.categoryGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.categoryContent}>
-          <Ionicons name={item.icon} size={28} color="white" />
+          <Ionicons name={item.icon as any} size={28} color="white" />
           <Text style={styles.categoryLabel}>{item.label}</Text>
           <Text style={styles.categorySubLabel}>Add Food</Text>
         </View>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-
-  const renderFoodItem = ({ item }) => (
-    <TouchableOpacity
-      style={styles.foodCard}
-      onPress={() => {
-        router.push({
-          pathname: "/nutritionval",
-          params: {
-            pic: item.food.image || "",
-            name: item.food.label || "Food Item",
-            energy: item.food.nutrients?.ENERC_KCAL || 0,
-            pros: item.food.nutrients?.PROCNT || 0,
-            fats: item.food.nutrients?.FAT || 0,
-            carbs: item.food.nutrients?.CHOCDF || 0,
-            fibres: item.food.nutrients?.FIBTG || 0,
-            mealType: selectedMeal,
-          }
-        });
-      }}
-    >
-      <Image 
-        source={{ uri: item.food.image || "https://cdn.pixabay.com/photo/2017/02/21/08/49/food-2085075_1280.png" }}
-        style={styles.foodImage}
-      />
-      <BlurView intensity={80} style={styles.foodInfoBlur}>
-        <View style={styles.foodInfo}>
-          <Text style={styles.foodTitle} numberOfLines={1}>{item.food.label}</Text>
-          <View style={styles.nutritionInfo}>
-            <Text style={styles.foodCalories}>{Math.round(item.food.nutrients.ENERC_KCAL)} kcal</Text>
-            <View style={styles.macroContainer}>
-              <Text style={styles.macroText}>P: {Math.round(item.food.nutrients.PROCNT)}g</Text>
-              <Text style={styles.macroText}>C: {Math.round(item.food.nutrients.CHOCDF)}g</Text>
-              <Text style={styles.macroText}>F: {Math.round(item.food.nutrients.FAT)}g</Text>
-            </View>
-          </View>
-        </View>
-      </BlurView>
-    </TouchableOpacity>
-  );
-
-  const renderMealType = ({ item }: { item: MealType }) => (
-    <TouchableOpacity
-      style={styles.mealTypeCard}
-      onPress={() => router.push({
-        pathname: "/addMeal",
-        params: { mealType: item.id }
-      })}
-    >
-      <LinearGradient
-        colors={item.gradient}
-        style={styles.mealGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Ionicons name={item.icon} size={24} color="white" />
-        <Text style={styles.mealTypeLabel}>{item.label}</Text>
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -517,7 +567,13 @@ const Home = () => {
         }
       >
         <View style={styles.mainContent}>
-          <QuickStats stepCount={stepCount} />
+          <QuickStats 
+            stepCount={stepCount} 
+            waterIntake={waterIntake}
+            waterGoal={waterGoal}
+            isWaterLoading={isWaterLoading}
+            onUpdateWater={handleUpdateWater} // Pass handler function
+          />
           
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
@@ -670,12 +726,11 @@ const styles = StyleSheet.create({
   scrollContentPadding: {
     paddingTop: Platform.OS === 'ios' ? 110 : 90,
   },
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
   scrollContent: {
     flexGrow: 1,
+  },
+  scrollContentContainer: {
+    paddingBottom: 100,
   },
   searchButton: {
     marginHorizontal: 20,
@@ -713,10 +768,29 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  waterStatCard: {
+    // Specific adjustments if needed, otherwise statCard styles apply
+  },
+  waterValueContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center', 
+    marginVertical: 5,
+    width: '100%',
+  },
+  waterButton: {
+    padding: 5,
+    marginHorizontal: 5,
+  },
+  waterIcon: {
+    marginBottom: 8,
+  },
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
     marginVertical: 5,
+    marginHorizontal: 6,
+    color: '#333',
   },
   statLabel: {
     fontSize: 12,
