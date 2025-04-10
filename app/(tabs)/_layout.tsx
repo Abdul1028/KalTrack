@@ -29,6 +29,19 @@ const _layout = () => {
           tabBarInactiveTintColor: 'gray',
         }}
       />
+
+      <Tabs.Screen  
+        name="workouts"
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="barbell" size={size} color={color} />
+          ),
+          tabBarLabel: 'Workouts',
+          tabBarActiveTintColor: '#FF6B6B',
+          tabBarInactiveTintColor: '#95A5A6',
+        }}
+      />
       
         <Tabs.Screen
         name="meal-planner"
@@ -43,6 +56,8 @@ const _layout = () => {
         }}
       />
 
+      
+
 <Tabs.Screen
         name="account"
         options={{
@@ -55,6 +70,9 @@ const _layout = () => {
         }}
       />
    </Tabs>
+
+
+
   )
 }
 
