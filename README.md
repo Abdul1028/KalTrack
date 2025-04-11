@@ -48,3 +48,11 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+Commands for expo app generate
+eas build -p android --profile production -> for production build (aab)
+
+
+eas build -p android --profile androidapk -> development build (apk)
+
