@@ -151,18 +151,18 @@ const QuickStats = ({
   return (
     <View style={styles.quickStats}>
       <View style={styles.statCard}>
-        <MaterialCommunityIcons name="fire" size={24} color="#FF6B6B" />
+        <MaterialCommunityIcons name="fire" size={styles.iconSize?.fontSize || 24} color="#FF6B6B" style={styles.statIcon} />
         {isLoadingCalories ? (
-          <ActivityIndicator size="small" color="#FF6B6B" style={{ marginVertical: 5 }}/>
+          <ActivityIndicator size="small" color="#FF6B6B" style={styles.statValueLoader}/>
         ) : (
           <Text style={styles.statValue}>{caloriesLeft >= 0 ? caloriesLeft : 0}</Text>
         )}
         <Text style={styles.statLabel}>Calories Left</Text>
       </View>
       <View style={styles.statCard}>
-        <FontAwesome5 name="walking" size={24} color="#4ECDC4" />
+        <FontAwesome5 name="walking" size={styles.iconSize?.fontSize || 24} color="#4ECDC4" style={styles.statIcon} />
         {stepCount.loading ? (
-          <ActivityIndicator size="small" color="#4ECDC4" />
+          <ActivityIndicator size="small" color="#4ECDC4" style={styles.statValueLoader} />
         ) : (
           <Text style={styles.statValue}>
             {stepCount.error ? '--' : stepCount.steps.toLocaleString()}
@@ -170,22 +170,24 @@ const QuickStats = ({
         )}
         <Text style={styles.statLabel}>Steps</Text>
       </View>
-      <View style={[styles.statCard, styles.waterStatCard]}>
-        <MaterialCommunityIcons name="water" size={24} color="#45B7D1" style={styles.waterIcon} />
+      <View style={styles.statCard}>
+        <MaterialCommunityIcons name="water" size={styles.iconSize?.fontSize || 24} color="#45B7D1" style={styles.statIcon} />
         {isWaterLoading ? (
-          <ActivityIndicator size="small" color="#45B7D1" style={styles.waterValueContainer}/>
+          <ActivityIndicator size="small" color="#45B7D1" style={styles.statValueLoader} />
         ) : (
-          <View style={styles.waterValueContainer}>
-            <TouchableOpacity onPress={() => onUpdateWater(-1)} style={styles.waterButton}>
-              <Ionicons name="remove-circle-outline" size={22} color="#45B7D1" />
+          <Text style={styles.statValue}>{`${waterIntake}/${waterGoal}`}</Text>
+        )}
+        <Text style={styles.statLabel}>Water (cups)</Text>
+        {!isWaterLoading && (
+          <View style={styles.waterButtonContainer}>
+            <TouchableOpacity onPress={() => onUpdateWater(-1)} style={styles.waterButton} disabled={waterIntake <= 0}>
+              <Ionicons name="remove-circle-outline" size={styles.buttonIconSize?.fontSize || 24} color={waterIntake <= 0 ? '#c0c0c0' : '#45B7D1'} />
             </TouchableOpacity>
-            <Text style={styles.statValue}>{`${waterIntake}/${waterGoal}`}</Text>
-            <TouchableOpacity onPress={() => onUpdateWater(1)} style={styles.waterButton}>
-              <Ionicons name="add-circle-outline" size={22} color="#45B7D1" />
+            <TouchableOpacity onPress={() => onUpdateWater(1)} style={styles.waterButton} disabled={waterIntake >= waterGoal}>
+              <Ionicons name="add-circle-outline" size={styles.buttonIconSize?.fontSize || 24} color={waterIntake >= waterGoal ? '#c0c0c0' : '#45B7D1'} />
             </TouchableOpacity>
           </View>
         )}
-        <Text style={styles.statLabel}>Water (cups)</Text>
       </View>
     </View>
   );
@@ -664,7 +666,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 25,
     paddingBottom: 15,
   },
   headerLeft: {
@@ -684,9 +686,9 @@ const styles = StyleSheet.create({
     marginLeft: 15,
   },
   profileImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     backgroundColor: '#f0f0f0',
   },
   initialsContainer: {
@@ -696,14 +698,20 @@ const styles = StyleSheet.create({
   },
   initialsText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   fixedHeader: {
     backgroundColor: '#fff',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingTop: Platform.OS === 'ios' ? 10 : 40,
+    paddingBottom: 5,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 8,
   },
   mainContent: {
     flex: 1,
@@ -796,48 +804,59 @@ const styles = StyleSheet.create({
   quickStats: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: 15,
     marginVertical: 20,
   },
   statCard: {
     backgroundColor: '#fff',
-    padding: 15,
+    paddingVertical: 12,
+    paddingHorizontal: 5,
     borderRadius: 15,
     alignItems: 'center',
-    width: '30%',
+    justifyContent: 'space-between',
+    width: '31%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  waterStatCard: {
-    // Specific adjustments if needed, otherwise statCard styles apply
-  },
-  waterValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center', 
-    marginVertical: 5,
-    width: '100%',
-  },
-  waterButton: {
-    padding: 5,
-    marginHorizontal: 5,
-  },
-  waterIcon: {
+  statIcon: {
     marginBottom: 8,
+  },
+  iconSize: {
+    fontSize: 26,
   },
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginVertical: 5,
-    marginHorizontal: 6,
     color: '#333',
+    marginBottom: 3,
+    textAlign: 'center',
+  },
+  statValueLoader: {
+    height: 22,
+    marginBottom: 3,
+    marginTop: 3,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#666',
+    textAlign: 'center',
+    marginBottom: 5,
+  },
+  waterButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    width: '85%',
+    paddingTop: 0,
+  },
+  waterButton: {
+    padding: 4,
+  },
+  buttonIconSize: {
+    fontSize: 26,
   },
   todaysMealsContainer: {
     paddingHorizontal: 20,
