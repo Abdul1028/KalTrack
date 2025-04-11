@@ -50,7 +50,7 @@ Join our community of developers creating universal apps.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
 
 
-Commands for expo app generate
+## Commands for expo app generate
 eas build -p android --profile production -> for production build (aab)
 
 
