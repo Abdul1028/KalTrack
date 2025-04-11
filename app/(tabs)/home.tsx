@@ -16,7 +16,7 @@ import {
   ScrollView,
   Alert
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -90,6 +90,11 @@ interface QuickStatsProps {
   waterGoal: number;
   isWaterLoading: boolean;
   onUpdateWater: (change: number) => void;
+  targetCalories: number;
+  totalCaloriesConsumed: number;
+  totalCaloriesBurnedExercise: number;
+  addExerciseCaloriesToBudget: boolean;
+  isLoadingCalories: boolean;
 }
 
 const FixedHeader = () => {
@@ -133,44 +138,58 @@ const QuickStats = ({
   waterIntake, 
   waterGoal, 
   isWaterLoading, 
-  onUpdateWater 
-}: QuickStatsProps) => (
-  <View style={styles.quickStats}>
-    <View style={styles.statCard}>
-      <MaterialCommunityIcons name="fire" size={24} color="#FF6B6B" />
-      <Text style={styles.statValue}>1,200</Text> 
-      <Text style={styles.statLabel}>Calories Left</Text>
+  onUpdateWater,
+  targetCalories,
+  totalCaloriesConsumed,
+  totalCaloriesBurnedExercise,
+  addExerciseCaloriesToBudget,
+  isLoadingCalories,
+}: QuickStatsProps) => {
+  const exerciseCaloriesToAdd = addExerciseCaloriesToBudget ? totalCaloriesBurnedExercise : 0;
+  const caloriesLeft = Math.round(targetCalories - totalCaloriesConsumed + exerciseCaloriesToAdd);
+
+  return (
+    <View style={styles.quickStats}>
+      <View style={styles.statCard}>
+        <MaterialCommunityIcons name="fire" size={24} color="#FF6B6B" />
+        {isLoadingCalories ? (
+          <ActivityIndicator size="small" color="#FF6B6B" style={{ marginVertical: 5 }}/>
+        ) : (
+          <Text style={styles.statValue}>{caloriesLeft >= 0 ? caloriesLeft : 0}</Text>
+        )}
+        <Text style={styles.statLabel}>Calories Left</Text>
+      </View>
+      <View style={styles.statCard}>
+        <FontAwesome5 name="walking" size={24} color="#4ECDC4" />
+        {stepCount.loading ? (
+          <ActivityIndicator size="small" color="#4ECDC4" />
+        ) : (
+          <Text style={styles.statValue}>
+            {stepCount.error ? '--' : stepCount.steps.toLocaleString()}
+          </Text>
+        )}
+        <Text style={styles.statLabel}>Steps</Text>
+      </View>
+      <View style={[styles.statCard, styles.waterStatCard]}>
+        <MaterialCommunityIcons name="water" size={24} color="#45B7D1" style={styles.waterIcon} />
+        {isWaterLoading ? (
+          <ActivityIndicator size="small" color="#45B7D1" style={styles.waterValueContainer}/>
+        ) : (
+          <View style={styles.waterValueContainer}>
+            <TouchableOpacity onPress={() => onUpdateWater(-1)} style={styles.waterButton}>
+              <Ionicons name="remove-circle-outline" size={22} color="#45B7D1" />
+            </TouchableOpacity>
+            <Text style={styles.statValue}>{`${waterIntake}/${waterGoal}`}</Text>
+            <TouchableOpacity onPress={() => onUpdateWater(1)} style={styles.waterButton}>
+              <Ionicons name="add-circle-outline" size={22} color="#45B7D1" />
+            </TouchableOpacity>
+          </View>
+        )}
+        <Text style={styles.statLabel}>Water (cups)</Text>
+      </View>
     </View>
-    <View style={styles.statCard}>
-      <FontAwesome5 name="walking" size={24} color="#4ECDC4" />
-      {stepCount.loading ? (
-        <ActivityIndicator size="small" color="#4ECDC4" />
-      ) : (
-        <Text style={styles.statValue}>
-          {stepCount.error ? '--' : stepCount.steps.toLocaleString()}
-        </Text>
-      )}
-      <Text style={styles.statLabel}>Steps</Text>
-    </View>
-    <View style={[styles.statCard, styles.waterStatCard]}>
-      <MaterialCommunityIcons name="water" size={24} color="#45B7D1" style={styles.waterIcon} />
-      {isWaterLoading ? (
-        <ActivityIndicator size="small" color="#45B7D1" style={styles.waterValueContainer}/>
-      ) : (
-        <View style={styles.waterValueContainer}>
-          <TouchableOpacity onPress={() => onUpdateWater(-1)} style={styles.waterButton}>
-            <Ionicons name="remove-circle-outline" size={22} color="#45B7D1" />
-          </TouchableOpacity>
-          <Text style={styles.statValue}>{`${waterIntake}/${waterGoal}`}</Text>
-          <TouchableOpacity onPress={() => onUpdateWater(1)} style={styles.waterButton}>
-            <Ionicons name="add-circle-outline" size={22} color="#45B7D1" />
-          </TouchableOpacity>
-        </View>
-      )}
-      <Text style={styles.statLabel}>Water (cups)</Text>
-    </View>
-  </View>
-);
+  );
+};
 
 const TodaysMeals = () => {
   const [meals, setMeals] = useState<any[]>([]);
@@ -283,6 +302,9 @@ const Home = () => {
   const [isWaterLoading, setIsWaterLoading] = useState(true);
 
   const {user} = useUser();
+  const [userDetails, setUserDetails] = useState<any>(null);
+  const [dailySummary, setDailySummary] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const scrollY = new Animated.Value(0);
   const diffClampScrollY = Animated.diffClamp(scrollY, 0, 50);
@@ -293,124 +315,67 @@ const Home = () => {
 
   const getCurrentDateDocId = () => moment().format('DD-MM-YYYY');
 
-  // Fetch Daily Summary Data (including water)
+  const fetchUserDetails = useCallback(async () => {
+    if (!user) return null;
+    try {
+      const userDocRef = doc(db, 'users', user.id);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        return userDocSnap.data();
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+      return null;
+    }
+  }, [user]);
+
   const fetchDailyData = useCallback(async () => {
-    if (!user) return;
-    setIsWaterLoading(true);
+    if (!user) return null;
     try {
       const dateId = getCurrentDateDocId();
       const dailyDocRef = doc(db, 'users', user.id, 'NutritionData', dateId);
       const docSnap = await getDoc(dailyDocRef);
-
       if (docSnap.exists()) {
-        const data = docSnap.data();
-        setWaterIntake(data.waterIntake || 0);
-        // TODO: Fetch other daily summary data like calories left here
-      } else {
-        // If no doc, water intake is 0 for the day
-        setWaterIntake(0); 
+        return docSnap.data();
       }
+      return { waterIntake: 0, totalCaloriesConsumed: 0, totalCaloriesBurnedExercise: 0 };
     } catch (error) {
       console.error("Error fetching daily data:", error);
-      // Optionally set an error state
-    } finally {
-      setIsWaterLoading(false);
+      return null;
     }
   }, [user]);
 
-  // Update Water Intake in Firestore
-  const handleUpdateWater = async (change: number) => {
-    if (!user) return;
-
-    // Prevent incrementing if goal is already met or exceeded
-    if (change > 0 && waterIntake >= waterGoal) {
-      // Optionally show a different message like "Goal already reached!"
-      // Alert.alert("Goal Reached", "You've already met your water goal for today!");
-      return; 
+  const loadAllData = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      setUserDetails(null);
+      setDailySummary(null);
+      setWaterIntake(0);
+      return;
     }
-    
-    const newIntake = Math.max(0, waterIntake + change); // Ensure intake doesn't go below 0
-    const justReachedGoal = change > 0 && newIntake === waterGoal && waterIntake < waterGoal;
+    console.log("Home screen loading data...");
+    setIsLoading(true);
 
-    setWaterIntake(newIntake); // Optimistic update
-
-    // Show alert if goal was just reached
-    if (justReachedGoal) {
-      Alert.alert("Hurray!", "You are done for the day");
-    }
-
-    try {
-      const dateId = getCurrentDateDocId();
-      const dailyDocRef = doc(db, 'users', user.id, 'NutritionData', dateId);
-      
-      await setDoc(dailyDocRef, { 
-        waterIntake: newIntake,
-        updatedAt: Timestamp.now() // Add or update timestamp
-      }, { merge: true }); // Use merge to avoid overwriting other fields
-
-    } catch (error) {
-      console.error("Error updating water intake:", error);
-      Alert.alert("Error", "Could not update water intake. Please try again.");
-      // Revert optimistic update if needed (or refetch)
-      fetchDailyData(); 
-    }
-  };
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    // Combine fetches
-    await Promise.all([
-      fetchDishes(), // Keep existing refresh logic if needed
-      fetchDailyData(), // Fetch water data
-      // Add other refresh fetches here if necessary
+    const [details, summary] = await Promise.all([
+      fetchUserDetails(),
+      fetchDailyData()
     ]);
-    setRefreshing(false);
-  }, [user, fetchDailyData]); // Add fetchDailyData to dependency array
 
-  const formatToTwoDecimals = (num:any) => {
-    if (isNaN(num)) return '0.00'; // Handle non-numeric values
-    return (Math.round(num * 100) / 100).toFixed(2);
-  };
+    setUserDetails(details);
+    setDailySummary(summary);
 
+    setWaterIntake(summary?.waterIntake || 0);
 
-  const fetchDishes = async () => {
-    if (!searchQuery){
-     return 
-    }
-    console.log("called");
+    setIsLoading(false);
+    console.log("Home screen data loaded.");
+  }, [user, fetchUserDetails, fetchDailyData]);
 
-    setLoading(true);
-    const app_id = '56082498';
-    const app_key = '7e45de6c1b73f0dd65efc3eb5ab33ea5';
-    
-    try {
-      const response = await axios.get(`https://api.edamam.com/api/food-database/v2/parser`, {
-        params: {
-          app_id,
-          app_key,
-          ingr: searchQuery + " "+ selectedMeal,
-        },
-      });
-      setDishes(response.data.hints);
-      setLoading(false);
-    } catch (error) {
-      console.error(error);
-      setLoading(false);
-    }
-  };
-
-
-
-  useEffect(() => {
-    fetchDishes();
-  }, [selectedMeal, selectedWeight]);
-
-  useEffect(() => {
-    if (user) {
-      scheduleMidnightNotification(user.id);
-      fetchDailyData(); // Fetch initial water data when user is available
-    }
-  }, [user, fetchDailyData]); // Add fetchDailyData dependency
+  useFocusEffect(
+    useCallback(() => {
+      loadAllData();
+    }, [loadAllData])
+  );
 
   useEffect(() => {
     let subscription: any = null;
@@ -429,7 +394,6 @@ const Home = () => {
           return;
         }
 
-        // Get steps from midnight until now
         const end = new Date();
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -444,7 +408,6 @@ const Home = () => {
           }));
         }
 
-        // Start subscription for real-time updates
         subscription = Pedometer.watchStepCount(result => {
           setStepCount(prev => ({
             ...prev,
@@ -465,7 +428,6 @@ const Home = () => {
 
     getStepCount();
 
-    // Set up interval to refresh total steps periodically
     const refreshInterval = setInterval(async () => {
       try {
         const end = new Date();
@@ -484,9 +446,8 @@ const Home = () => {
       } catch (error) {
         console.error('Step refresh error:', error);
       }
-    }, 60000); // Refresh every minute
+    }, 60000);
 
-    // Cleanup subscriptions
     return () => {
       if (subscription) {
         subscription.remove();
@@ -555,6 +516,83 @@ const Home = () => {
     });
   };
 
+  const handleUpdateWater = async (change: number) => {
+    if (!user) return;
+
+    if (change > 0 && waterIntake >= waterGoal) {
+      return;
+    }
+    
+    const newIntake = Math.max(0, waterIntake + change);
+    const justReachedGoal = change > 0 && newIntake === waterGoal && waterIntake < waterGoal;
+
+    setWaterIntake(newIntake);
+
+    if (justReachedGoal) {
+      Alert.alert("Hurray!", "You are done for the day");
+    }
+
+    try {
+      const dateId = getCurrentDateDocId();
+      const dailyDocRef = doc(db, 'users', user.id, 'NutritionData', dateId);
+      
+      await setDoc(dailyDocRef, { 
+        waterIntake: newIntake,
+        updatedAt: Timestamp.now()
+      }, { merge: true });
+
+    } catch (error) {
+      console.error("Error updating water intake:", error);
+      Alert.alert("Error", "Could not update water intake. Please try again.");
+      loadAllData();
+    }
+  };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      fetchDishes(),
+      loadAllData(),
+    ]);
+    setRefreshing(false);
+  }, [user, loadAllData]);
+
+  const formatToTwoDecimals = (num:any) => {
+    if (isNaN(num)) return '0.00';
+    return (Math.round(num * 100) / 100).toFixed(2);
+  };
+
+  const fetchDishes = async () => {
+    if (!searchQuery){
+     return 
+    }
+    console.log("called");
+
+    setLoading(true);
+    const app_id = '56082498';
+    const app_key = '7e45de6c1b73f0dd65efc3eb5ab33ea5';
+    
+    try {
+      const response = await axios.get(`https://api.edamam.com/api/food-database/v2/parser`, {
+        params: {
+          app_id,
+          app_key,
+          ingr: searchQuery + " "+ selectedMeal,
+        },
+      });
+      setDishes(response.data.hints);
+      setLoading(false);
+    } catch (error) {
+      console.error(error);
+      setLoading(false);
+    }
+  };
+
+  const targetCalories = userDetails?.targetCalories || 0;
+  const totalCaloriesConsumed = dailySummary?.totalCaloriesConsumed || 0;
+  const totalCaloriesBurnedExercise = dailySummary?.totalCaloriesBurnedExercise || 0;
+  const addExerciseCaloriesToBudget = userDetails?.addExerciseCaloriesToBudget !== false;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -563,16 +601,21 @@ const Home = () => {
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollContentContainer}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isLoading} onRefresh={loadAllData} />
         }
       >
         <View style={styles.mainContent}>
-          <QuickStats 
-            stepCount={stepCount} 
+          <QuickStats
+            stepCount={stepCount}
             waterIntake={waterIntake}
             waterGoal={waterGoal}
-            isWaterLoading={isWaterLoading}
-            onUpdateWater={handleUpdateWater} // Pass handler function
+            isWaterLoading={isLoading}
+            onUpdateWater={handleUpdateWater}
+            targetCalories={targetCalories}
+            totalCaloriesConsumed={totalCaloriesConsumed}
+            totalCaloriesBurnedExercise={totalCaloriesBurnedExercise}
+            addExerciseCaloriesToBudget={addExerciseCaloriesToBudget}
+            isLoadingCalories={isLoading}
           />
           
           <View style={styles.sectionContainer}>
@@ -609,11 +652,11 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#fff',
     paddingTop: Platform.OS === 'android' ? 
-      SCREEN_HEIGHT * 0.05 : // More top padding for Android
-      SCREEN_HEIGHT * 0.02,  // Less top padding for iOS
+      SCREEN_HEIGHT * 0.05 :
+      SCREEN_HEIGHT * 0.02,
     zIndex: 1000,
     paddingHorizontal: SCREEN_WIDTH * 0.05,
-    marginTop: SCREEN_HEIGHT * 0.03, // Add top margin
+    marginTop: SCREEN_HEIGHT * 0.03,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },

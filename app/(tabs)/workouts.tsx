@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc, collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
@@ -54,40 +54,55 @@ export default function WorkoutsScreen() {
 
   const getCurrentDateDocId = () => moment().format('DD-MM-YYYY');
 
-  useEffect(() => {
-    const fetchWorkoutData = async () => {
-      if (!user) return;
-      setIsLoading(true);
-      const dateId = getCurrentDateDocId();
-      const userId = user.id;
+  // Wrap the data fetching logic in useCallback
+  const fetchWorkoutData = useCallback(async () => {
+    if (!user) {
+        console.log("No user, skipping fetch.");
+        setIsLoading(false); // Ensure loading stops if no user
+        setTodaysWorkouts([]); // Clear previous user's data
+        setTotalCaloriesBurned(0);
+        return;
+    }
+    console.log("Fetching workout data...");
+    setIsLoading(true); // Set loading true at the start of fetch
+    const dateId = getCurrentDateDocId();
+    const userId = user.id;
 
-      try {
-        // Fetch total calories burned from summary
-        const summaryDocRef = doc(db, 'users', userId, 'NutritionData', dateId);
-        const summarySnap = await getDoc(summaryDocRef);
-        if (summarySnap.exists()) {
-          setTotalCaloriesBurned(summarySnap.data()?.totalCaloriesBurnedExercise || 0);
-        } else {
-          setTotalCaloriesBurned(0);
-        }
-
-        // Fetch workout documents
-        const workoutsRef = collection(db, 'users', userId, 'NutritionData', dateId, 'Workouts');
-        const q = query(workoutsRef, orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
-        const fetchedWorkouts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Workout));
-        setTodaysWorkouts(fetchedWorkouts);
-
-      } catch (error) {
-        console.error("Error fetching workout data:", error);
-        // Handle error display if needed
-      } finally {
-        setIsLoading(false);
+    try {
+      // Fetch total calories burned from summary
+      const summaryDocRef = doc(db, 'users', userId, 'NutritionData', dateId);
+      const summarySnap = await getDoc(summaryDocRef);
+      if (summarySnap.exists()) {
+        setTotalCaloriesBurned(summarySnap.data()?.totalCaloriesBurnedExercise || 0);
+      } else {
+        setTotalCaloriesBurned(0); // Reset if no summary doc exists for the day
       }
-    };
 
-    fetchWorkoutData();
-  }, [user]); // Refetch if user changes
+      // Fetch workout documents
+      const workoutsRef = collection(db, 'users', userId, 'NutritionData', dateId, 'Workouts');
+      const q = query(workoutsRef, orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const fetchedWorkouts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Workout));
+      setTodaysWorkouts(fetchedWorkouts);
+      console.log(`Fetched ${fetchedWorkouts.length} workouts.`);
+
+    } catch (error) {
+      console.error("Error fetching workout data:", error);
+      setTodaysWorkouts([]); // Clear workouts on error
+      setTotalCaloriesBurned(0); // Clear calories on error
+    } finally {
+      setIsLoading(false); // Set loading false after fetch attempt
+    }
+  }, [user]); // Dependency array includes user
+
+  // Use useFocusEffect to call fetchWorkoutData when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchWorkoutData();
+      // Optional: Return a cleanup function if needed, though unlikely for fetching
+      // return () => console.log("Workouts screen blurred");
+    }, [fetchWorkoutData]) // Dependency array for useFocusEffect includes the memoized fetch function
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -98,7 +113,12 @@ export default function WorkoutsScreen() {
         {/* Summary Section */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Calories Burned Today</Text>
-          <Text style={styles.summaryValue}>{Math.round(totalCaloriesBurned)} kcal</Text>
+          {/* Show loading indicator for calories too */}
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#FF6B6B"/>
+          ) : (
+            <Text style={styles.summaryValue}>{Math.round(totalCaloriesBurned)} kcal</Text>
+          )}
         </View>
 
         {/* Log Workout Button */}
@@ -147,6 +167,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    minHeight: 90, // Give it min height for loading indicator
+    justifyContent: 'center',
   },
   summaryLabel: {
     fontSize: 16,

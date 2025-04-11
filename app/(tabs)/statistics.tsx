@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, ComponentProps } from 'react';
 import { View, Text, Dimensions, StyleSheet, ScrollView, ActivityIndicator, Platform } from 'react-native';
-import { PieChart, BarChart } from 'react-native-chart-kit';
+import { PieChart, BarChart, LineChart } from 'react-native-chart-kit';
 import { collection, doc, getDoc, getDocs, onSnapshot } from 'firebase/firestore';
 import { useUser } from '@clerk/clerk-expo';
 import { db } from '../../firebaseConfig';
@@ -15,27 +15,49 @@ import Animated, {
   runOnJS
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useFocusEffect } from 'expo-router';
 
 const { width, height } = Dimensions.get('window');
+
+// Define the type for Ionicons names
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+interface DailyStat {
+    date: string; // e.g., "MM/DD"
+    consumed: number;
+    burned: number;
+}
+
+const screenWidth = Dimensions.get("window").width;
 
 const Statistics = () => {
   const { user } = useUser();
   const [caloriesConsumed, setCaloriesConsumed] = useState(0);
   const [maintenanceCalories, setMaintenanceCalories] = useState(2359); // Default to avoid division by zero
   const date = moment().format('DD-MM-YYYY');
-  const [caloriesData, setCaloriesData] = useState<number[]>([]);
-  const [dateLabels, setDateLabels] = useState<string[]>([]);
+  const [barChartCaloriesData, setBarChartCaloriesData] = useState<number[]>([]);
+  const [barChartDateLabels, setBarChartDateLabels] = useState<string[]>([]);
+  const [lineChartStatsData, setLineChartStatsData] = useState<DailyStat[]>([]);
+  const [isLoadingLineChart, setIsLoadingLineChart] = useState(true);
+  const [isLoadingUserDetails, setIsLoadingUserDetails] = useState(true);
+  const [isLoadingBarChart, setIsLoadingBarChart] = useState(true);
+  const [isLoadingPieChart, setIsLoadingPieChart] = useState(true);
 
   const barAnimation = useSharedValue(0);
   const pieAnimation = useSharedValue(0);
 
   useEffect(() => {
-    barAnimation.value = withSequence(
-      withTiming(1.1, { duration: 500 }),
-      withSpring(1)
-    );
-    pieAnimation.value = withTiming(1, { duration: 1000 });
-  }, [caloriesData]);
+    if (!isLoadingBarChart) {
+      barAnimation.value = withSequence(
+        withTiming(1.1, { duration: 500 }),
+        withSpring(1)
+      );
+    }
+    if (!isLoadingPieChart) {
+      pieAnimation.value = withTiming(1, { duration: 1000 });
+    }
+  }, [isLoadingBarChart, isLoadingPieChart]);
 
   const animatedBarStyle = useAnimatedStyle(() => ({
     transform: [{ scale: barAnimation.value }],
@@ -66,98 +88,141 @@ const Statistics = () => {
     }
   }
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (user) {
-        try {
-          const nutritionRef = doc(db, `users/${user.id}/NutritionData/${date}`);
-          const nutritionSnap = await getDoc(nutritionRef);
+  const fetchPieChartData = useCallback(async () => {
+    if (!user) {
+      setIsLoadingUserDetails(false);
+      setIsLoadingPieChart(false);
+      setMaintenanceCalories(2359); // Reset to default
+      setCaloriesConsumed(0); // Reset
+      return;
+    }
+    setIsLoadingUserDetails(true);
+    setIsLoadingPieChart(true);
 
-          if (nutritionSnap.exists()) {
-            const data = nutritionSnap.data();
-            setCaloriesConsumed(Math.floor(data.calories )|| 0); // Calories consumed for the day
-          }
-        } catch (error) {
-          console.error("Error fetching nutrition data:", error);
-        }
-
-        try {
-          const data = await getUserDocument(user.id); // Use user.id from Clerk
-          setMaintenanceCalories(Math.floor(data['maintenanceCalories']));
-        } catch (error) {
-          console.error("Error fetching user data: ", error);
-        }
+    try {
+      const userData = await getUserDocument(user.id);
+      if (userData && userData.maintenanceCalories) {
+        setMaintenanceCalories(Math.floor(userData.maintenanceCalories));
+      } else {
+        console.log("Maintenance calories not found, using default.");
+        setMaintenanceCalories(2359); // Keep default if not found
       }
-    };
+      setIsLoadingUserDetails(false);
 
-    fetchData();
-  }, [user, date]);
+      const todayDate = moment().format('DD-MM-YYYY');
+      const nutritionRef = doc(db, `users/${user.id}/NutritionData/${todayDate}`);
+      const nutritionSnap = await getDoc(nutritionRef);
 
-  useEffect(() => {
-    const fetchCaloriesData = async () => {
-      const caloriesCollectionRef = collection(db, `users/${user?.id}/NutritionData`);
-      const querySnapshot = await getDocs(caloriesCollectionRef);
-
-      const caloriesArray: number[] = [];
-      const dateLabels: string[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const date = doc.id; // Document ID in DD-MM-YYYY format
-        const data = doc.data();
-        if (data.calories) {
-          const shortDate = date.substring(0, 5);
-          dateLabels.push(shortDate);
-          caloriesArray.push(Math.floor(data.calories));
-        }
-      });
-
-      setCaloriesData(caloriesArray);
-      setDateLabels(dateLabels);
-    };
-
-    fetchCaloriesData();
-  }, [user, caloriesConsumed]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const unsubscribe = onSnapshot(collection(db, `users/${user.id}/NutritionData`), (querySnapshot) => {
-      const caloriesArray: number[] = [];
-      const dateLabels: string[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const date = doc.id;
-        const data = doc.data();
-        if (data.calories) {
-          const shortDate = date.substring(0, 5);
-          dateLabels.push(shortDate);
-          caloriesArray.push(Math.floor(data.calories));
-        }
-      });
-
-      //ONLY 7 DAYS DATA
-      setCaloriesData(caloriesArray.slice(-7));
-      setDateLabels(dateLabels.slice(-7));
-
-    });
-
-    return () => unsubscribe(); // Cleanup the listener on unmount
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Listen for changes to today's NutritionData
-    const unsubscribe = onSnapshot(doc(db, `users/${user.id}/NutritionData/${date}`), (nutritionSnap) => {
       if (nutritionSnap.exists()) {
-        const data = nutritionSnap.data();
-        console.log("Calories for today:", data.calories); // Debugging: Log the fetched calories
-        setCaloriesConsumed(Math.floor(data.calories || 0)); // Set the consumed calories
+        const nutritionData = nutritionSnap.data();
+        setCaloriesConsumed(Math.floor(nutritionData.totalCaloriesConsumed || nutritionData.calories || 0));
+      } else {
+        setCaloriesConsumed(0); // Reset if no doc for today
       }
-    });
+      setIsLoadingPieChart(false);
+    } catch (error) {
+      console.error("Error fetching data for Pie Chart:", error);
+      setIsLoadingUserDetails(false);
+      setIsLoadingPieChart(false);
+    }
+  }, [user]);
 
-    return () => unsubscribe(); // Cleanup on unmount
-  }, [user, date]);
+  const fetchBarChartData = useCallback(async () => {
+    if (!user) {
+      setIsLoadingBarChart(false);
+      setBarChartCaloriesData([]);
+      setBarChartDateLabels([]);
+      return;
+    }
+    setIsLoadingBarChart(true);
+
+    try {
+      const caloriesArray: number[] = [];
+      const dateLabels: string[] = [];
+      const today = moment();
+
+      for (let i = 6; i >= 0; i--) {
+        const targetDate = moment(today).subtract(i, 'days');
+        const dateId = targetDate.format('DD-MM-YYYY');
+        const shortDate = targetDate.format('MM/DD');
+        dateLabels.push(shortDate);
+
+        const nutritionRef = doc(db, `users/${user.id}/NutritionData/${dateId}`);
+        const nutritionSnap = await getDoc(nutritionRef);
+        let dailyConsumed = 0;
+        if (nutritionSnap.exists()) {
+          const data = nutritionSnap.data();
+          dailyConsumed = Math.floor(data.totalCaloriesConsumed || data.calories || 0);
+        }
+        caloriesArray.push(dailyConsumed);
+      }
+
+      setBarChartCaloriesData(caloriesArray);
+      setBarChartDateLabels(dateLabels);
+    } catch(error) {
+      console.error("Error fetching bar chart data:", error);
+      setBarChartCaloriesData([]);
+      setBarChartDateLabels([]);
+    } finally {
+      setIsLoadingBarChart(false);
+    }
+  }, [user]);
+
+  const fetchLineChartData = useCallback(async () => {
+    if (!user) {
+      setIsLoadingLineChart(false);
+      setLineChartStatsData([]);
+      return;
+    }
+    console.log("Fetching calorie line chart data...");
+    setIsLoadingLineChart(true);
+    const userId = user.id;
+    const today = moment();
+    const datePromises: Promise<DailyStat>[] = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const targetDate = moment(today).subtract(i, 'days');
+      const dateId = targetDate.format('DD-MM-YYYY');
+      const dateLabel = targetDate.format('MM/DD');
+
+      const dailyDocRef = doc(db, 'users', userId, 'NutritionData', dateId);
+      const promise = getDoc(dailyDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          return {
+            date: dateLabel,
+            consumed: data.totalCaloriesConsumed || 0,
+            burned: data.totalCaloriesBurnedExercise || 0,
+          };
+        } else {
+          return { date: dateLabel, consumed: 0, burned: 0 };
+        }
+      }).catch(error => {
+        console.error(`Error fetching data for ${dateId}:`, error);
+        return { date: dateLabel, consumed: 0, burned: 0 };
+      });
+      datePromises.push(promise);
+    }
+
+    try {
+      const results = await Promise.all(datePromises);
+      console.log("Fetched line chart data:", results);
+      setLineChartStatsData(results);
+    } catch (error) {
+      console.error("Error processing line chart data promises:", error);
+      setLineChartStatsData([]);
+    } finally {
+      setIsLoadingLineChart(false);
+    }
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPieChartData();
+      fetchBarChartData();
+      fetchLineChartData();
+    }, [fetchPieChartData, fetchBarChartData, fetchLineChartData])
+  );
 
   const percentageConsumed = maintenanceCalories > 0 
     ? (caloriesConsumed / maintenanceCalories) * 100 
@@ -167,34 +232,46 @@ const Statistics = () => {
     ? Math.max(0, 100 - percentageConsumed)
     : 0;
 
-  const chartData = [
+  const pieChartDataSource = [
     {
       name: 'Consumed',
       calories: isNaN(percentageConsumed) ? 0 : percentageConsumed,
-      color: '#FF6B6B', // Vibrant red
+      color: '#FF6B6B',
       legendFontColor: '#7F7F7F',
       legendFontSize: 12,
     },
     {
       name: 'Remaining',
       calories: isNaN(remaining) ? 0 : remaining,
-      color: '#FFE0E0', // Light pink
+      color: '#FFE0E0',
       legendFontColor: '#7F7F7F',
       legendFontSize: 12,
     },
   ];
 
-  // Data for the bar chart
-  const barChartData = {
-    labels: dateLabels,
-    datasets: [
-      {
-        data: caloriesData,
-      },
-    ],
+  const barChartDataSource = {
+    labels: barChartDateLabels,
+    datasets: [ { data: barChartCaloriesData } ],
   };
 
-  const renderStatCard = (title: string, value: string, icon: string, color: string) => (
+  const lineChartDataSource = {
+    labels: lineChartStatsData.map(d => d.date),
+    datasets: [
+      {
+        data: lineChartStatsData.map(d => d.burned),
+        color: (opacity = 1) => `rgba(255, 107, 107, ${opacity})`,
+        strokeWidth: 3,
+      },
+      {
+        data: lineChartStatsData.map(d => d.consumed),
+        color: (opacity = 1) => `rgba(78, 205, 196, ${opacity})`,
+        strokeWidth: 3,
+      },
+    ],
+    legend: ["Burned (Exercise)", "Consumed"],
+  };
+
+  const renderStatCard = (title: string, value: string, icon: IoniconName, color: string) => (
     <View style={styles.statCard}>
       <View style={[styles.iconContainer, { backgroundColor: `${color}20` }]}>
         <Ionicons name={icon} size={24} color={color} />
@@ -204,13 +281,12 @@ const Statistics = () => {
     </View>
   );
 
-  // Enhanced Bar Chart Configuration
   const barChartConfig = {
     backgroundColor: '#ffffff',
     backgroundGradientFrom: '#ffffff',
     backgroundGradientTo: '#ffffff',
     decimalPlaces: 0,
-    color: (opacity = 1) => `rgba(255, 160, 122, ${opacity})`, // Light orange color
+    color: (opacity = 1) => `rgba(255, 160, 122, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(102, 102, 102, ${opacity})`,
     style: {
       borderRadius: 16,
@@ -225,135 +301,200 @@ const Statistics = () => {
       fontWeight: '500',
       color: '#666666',
     },
-    barPercentage: 0.5, // Make bars thinner
+    barPercentage: 0.5,
     fillShadowGradient: '#FFA07A',
-    fillShadowGradientOpacity: 0.3, // Reduce opacity to make it lighter
+    fillShadowGradientOpacity: 0.3,
+  };
+
+  const lineChartConfig = {
+    backgroundColor: "#ffffff",
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#ffffff",
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(51, 51, 51, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(102, 102, 102, ${opacity})`,
+    style: { borderRadius: 16 },
+    propsForDots: {
+      r: "5",
+      strokeWidth: "1",
+      stroke: "#555"
+    },
+    propsForBackgroundLines: { strokeDasharray: "", stroke: "#e0e0e0" }
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Statistics</Text>
-        <Text style={styles.headerSubtitle}>Track your progress</Text>
-      </View>
-
-      <View style={styles.cardsContainer}>
-        {renderStatCard(
-          'Daily Goal',
-          `${maintenanceCalories} cal`,
-          'fitness-outline',
-          '#FF6B6B'
-        )}
-        {renderStatCard(
-          'Consumed',
-          `${caloriesConsumed} cal`,
-          'restaurant-outline',
-          '#4ECDC4'
-        )}
-        {renderStatCard(
-          'Remaining',
-          `${Math.max(0, maintenanceCalories - caloriesConsumed)} cal`,
-          'timer-outline',
-          '#45B7D1'
-        )}
-      </View>
-
-      <Animated.View style={[styles.chartContainer, animatedBarStyle]}>
-        <View style={styles.chartHeader}>
-          <Text style={styles.chartTitle}>Weekly Progress</Text>
-          <LinearGradient
-            colors={['#FF6B6B', '#FFA07A']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradientBadge}
-          >
-            <Text style={styles.badgeText}>Last 7 Days</Text>
-          </LinearGradient>
+    <SafeAreaView style={styles.safeArea}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Statistics</Text>
+          <Text style={styles.headerSubtitle}>Track your progress</Text>
         </View>
-        
-        <View style={styles.chartWrapper}>
-          <BarChart
-            data={barChartData}
-            width={width - 80} // Reduce width to prevent overflow
-            height={220}
-            chartConfig={barChartConfig}
-            style={styles.chart}
-            fromZero
-            showValuesOnTopOfBars
-            segments={5}
-            withInnerLines={true}
-            flatColor={true}
-            withHorizontalLabels={true}
-            yAxisLabel=""
-            yAxisSuffix=""
-          />
-        </View>
-      </Animated.View>
 
-      <Animated.View style={[styles.pieChartContainer, animatedPieStyle]}>
-        <Text style={styles.chartTitle}>Today's Progress</Text>
-        <View style={styles.pieWrapper}>
-          <PieChart
-            data={chartData}
-            width={width - 60}
-            height={200}
-            chartConfig={{
-              color: (opacity = 1) => `rgba(255, 107, 107, ${opacity})`,
-              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-            }}
-            accessor="calories"
-            backgroundColor="transparent"
-            paddingLeft="0"
-            center={[(width - 60) / 4, 0]}
-            absolute
-            hasLegend={false}
-            avoidFalseZero
-          />
-          <View style={styles.centerLabel}>
-            <Text style={styles.centerValue}>
-              {Math.round(percentageConsumed)}%
-            </Text>
-            <Text style={styles.centerText}>Consumed</Text>
+        <View style={styles.cardsContainer}>
+          {isLoadingUserDetails ? <ActivityIndicator/> : renderStatCard(
+            'Daily Goal',
+            `${maintenanceCalories} cal`,
+            'fitness-outline',
+            '#FF6B6B'
+          )}
+          {isLoadingPieChart ? <ActivityIndicator/> : renderStatCard(
+            'Consumed',
+            `${caloriesConsumed} cal`,
+            'restaurant-outline',
+            '#4ECDC4'
+          )}
+          {isLoadingPieChart || isLoadingUserDetails ? <ActivityIndicator/> : renderStatCard(
+            'Remaining',
+            `${Math.max(0, maintenanceCalories - caloriesConsumed)} cal`,
+            'timer-outline',
+            '#45B7D1'
+          )}
+        </View>
+
+        <Animated.View style={[styles.chartContainer, animatedBarStyle]}>
+          <View style={styles.chartHeader}>
+            <Text style={styles.chartTitle}>Weekly Consumption</Text>
+            <LinearGradient
+              colors={['#FF6B6B', '#FFA07A']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.gradientBadge}
+            >
+              <Text style={styles.badgeText}>Last 7 Days</Text>
+            </LinearGradient>
           </View>
-        </View>
-        
-        <View style={styles.legendContainer}>
-          {chartData.map((item, index) => (
-            <View key={index} style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-              <Text style={styles.legendText}>{item.name}</Text>
-              <Text style={styles.legendValue}>{Math.round(item.calories)}%</Text>
+          
+          <View style={styles.chartWrapper}>
+            {isLoadingBarChart ? (
+              <ActivityIndicator size="large" color="#FF6B6B" style={styles.loadingIndicator} />
+            ) : barChartDataSource.labels && barChartDataSource.labels.length > 0 ? (
+              <BarChart
+                data={barChartDataSource}
+                width={width - 80}
+                height={220}
+                chartConfig={barChartConfig}
+                style={styles.chart}
+                fromZero
+                showValuesOnTopOfBars
+                segments={5}
+                withInnerLines={true}
+                flatColor={true}
+                withHorizontalLabels={true}
+                yAxisLabel=""
+                yAxisSuffix=" cal"
+              />
+            ) : (
+              <Text style={styles.emptyText}>No weekly data available.</Text>
+            )}
+          </View>
+        </Animated.View>
+
+        <Animated.View style={[styles.pieChartContainer, animatedPieStyle]}>
+          <Text style={styles.chartTitle}>Today's Progress</Text>
+          <View style={styles.pieWrapper}>
+            {isLoadingPieChart || isLoadingUserDetails ? (
+              <ActivityIndicator size="large" color="#FF6B6B" style={styles.loadingIndicator} />
+            ) : (
+              <>
+                <PieChart
+                  data={pieChartDataSource}
+                  width={width - 60}
+                  height={190}
+                  chartConfig={{
+                    color: (opacity = 1) => `rgba(255, 107, 107, ${opacity})`,
+                  }}
+                  accessor="calories"
+                  backgroundColor="transparent"
+                  paddingLeft="15"
+                  center={[ (width - 60) / 5 , 0]}
+                  absolute
+                  hasLegend={false}
+                  avoidFalseZero={true}
+                />
+                <View style={styles.centerLabel}>
+                  <Text style={styles.centerValue}>
+                    {Math.round(percentageConsumed)}%
+                  </Text>
+                  <Text style={styles.centerText}>Consumed</Text>
+                </View>
+              </>
+            )}
+          </View>
+          
+          {!(isLoadingPieChart || isLoadingUserDetails) && (
+            <View style={styles.legendContainer}>
+              {pieChartDataSource.map((item, index) => (
+                <View key={index} style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                  <Text style={styles.legendText}>{item.name}</Text>
+                  <Text style={styles.legendValue}>{Math.round(item.calories)}%</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
+          )}
 
-        <View style={styles.progressBarContainer}>
-          <View style={styles.progressBar}>
-            <Animated.View 
-              style={[
-                styles.progressFill, 
-                { 
-                  width: `${Math.min(percentageConsumed, 100)}%`,
-                  backgroundColor: percentageConsumed > 100 ? '#FF4444' : '#FF6B6B' 
-                }
-              ]} 
-            />
-          </View>
+          {!(isLoadingPieChart || isLoadingUserDetails) && (
+            <View style={styles.progressBarContainer}>
+              <View style={styles.progressBar}>
+                <Animated.View 
+                  style={[
+                    styles.progressFill, 
+                    { 
+                      width: `${Math.min(percentageConsumed, 100)}%`,
+                      backgroundColor: percentageConsumed > 100 ? '#FF4444' : '#FF6B6B' 
+                    }
+                  ]} 
+                />
+              </View>
+            </View>
+          )}
+        </Animated.View>
+
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Calories: Consumed vs. Burned</Text>
+          <Text style={styles.subTitle}>Last 7 Days</Text>
+
+          {isLoadingLineChart ? (
+            <ActivityIndicator size="large" color="#FF6B6B" style={styles.loadingIndicator} />
+          ) : lineChartDataSource.labels && lineChartDataSource.labels.length > 0 ? (
+            <View style={styles.lineChartWrapper}>
+              <LineChart
+                data={lineChartDataSource}
+                width={screenWidth - 40}
+                height={250}
+                chartConfig={lineChartConfig}
+                bezier
+                style={styles.chartStyle}
+                withInnerLines={true}
+                withOuterLines={true}
+                fromZero={true}
+                withShadow={false}
+                withVerticalLabels={true}
+                withHorizontalLabels={true}
+              />
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>No detailed calorie data for the last 7 days.</Text>
+          )}
         </View>
-      </Animated.View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  container: {
+    flex: 1,
+  },
   header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    paddingTop: Platform.OS === 'ios' ? 20 : 40,
   },
   headerTitle: {
     fontSize: 28,
@@ -367,24 +508,23 @@ const styles = StyleSheet.create({
   },
   cardsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 20,
+    justifyContent: 'space-around',
+    paddingHorizontal: 15,
+    marginBottom: 10,
     flexWrap: 'wrap',
   },
   statCard: {
-    width: width * 0.28,
+    width: '30%',
     backgroundColor: '#ffffff',
     borderRadius: 15,
-    padding: 15,
+    padding: 12,
     marginBottom: 15,
+    alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
   iconContainer: {
     width: 40,
@@ -398,10 +538,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginBottom: 5,
+    textAlign: 'center',
   },
   statValue: {
     fontSize: 16,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   chartContainer: {
     backgroundColor: '#ffffff',
@@ -430,24 +572,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  chartLegend: {
-    flexDirection: 'row',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 15,
-  },
-  legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 5,
-  },
-  legendText: {
-    fontSize: 12,
-    color: '#666',
-  },
   chart: {
     marginVertical: 10,
     borderRadius: 16,
@@ -455,14 +579,12 @@ const styles = StyleSheet.create({
   pieChartContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 20,
-    padding: 20,
+    paddingVertical: 25,
+    paddingHorizontal: 20,
     margin: 20,
     marginTop: 0,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2, },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
@@ -471,7 +593,8 @@ const styles = StyleSheet.create({
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 200,
+    height: 190,
+    marginBottom: 10,
   },
   centerLabel: {
     position: 'absolute',
@@ -479,26 +602,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     top: '50%',
     left: '50%',
-    transform: [{ translateX: -40 }, { translateY: -30 }],
+    transform: [{ translateX: -45 }, { translateY: -25 }],
+    zIndex: 1,
   },
   centerValue: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#FF6B6B',
   },
   centerText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
+    marginTop: 2,
   },
   legendContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 20,
-    marginBottom: 15,
+    justifyContent: 'center',
+    marginTop: 15,
+    marginBottom: 10,
+    paddingHorizontal: 10,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginHorizontal: 15,
   },
   legendDot: {
     width: 10,
@@ -509,7 +636,7 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 14,
     color: '#666',
-    marginRight: 8,
+    marginRight: 5,
   },
   legendValue: {
     fontSize: 14,
@@ -553,10 +680,38 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: 'center',
   },
-  barValue: {
-    fontSize: 10,
+  sectionContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 20,
     fontWeight: '600',
+    color: '#333',
+    marginBottom: 5,
+  },
+  subTitle: {
+    fontSize: 14,
     color: '#666',
+    marginBottom: 15,
+  },
+  loadingIndicator: {
+    marginTop: 50,
+    marginBottom: 50,
+  },
+  lineChartWrapper: {
+    alignItems: 'center',
+  },
+  chartStyle: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: '#888',
+    fontStyle: 'italic',
   },
 });
 

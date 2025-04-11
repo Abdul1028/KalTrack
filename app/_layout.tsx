@@ -139,6 +139,15 @@ export default function RootLayout() {
           headerShown:false,
         }
       } />
+
+    <Stack.Screen
+      name="log-workout"
+      options={{
+        headerShown: false // We configure header inside the screen itself
+        // Or customize presentation style if needed, e.g., modal
+        // presentation: 'modal',
+      }}
+    />
     </Stack>
     </GestureHandlerRootView>
 

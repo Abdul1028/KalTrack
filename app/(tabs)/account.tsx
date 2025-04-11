@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ComponentProps } from 'react';
+import React, { useState, useEffect, ComponentProps, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -11,7 +11,7 @@ import {
   Alert,
   Switch,
   Modal,
-  NativeModules
+  NativeModules,
 } from 'react-native';
 import { useUser, useAuth } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,9 +24,9 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue
 } from 'react-native-reanimated';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -128,6 +128,8 @@ export default function Account() {
     activeEnergy: 0,
     basalEnergy: 0,
   });
+  const [addExerciseCalories, setAddExerciseCalories] = useState(true);
+  const [isUpdatingSetting, setIsUpdatingSetting] = useState(false);
 
   useEffect(() => {
     fetchUserDetails();
@@ -138,14 +140,27 @@ export default function Account() {
     };
   }, []);
 
-  const fetchUserDetails = async () => {
+  const fetchUserDetails = useCallback(async () => {
     if (user?.id) {
-      const userDoc = await getDoc(doc(db, 'users', user.id));
-      if (userDoc.exists()) {
-        setUserDetails(userDoc.data());
+      try {
+        const userDocRef = doc(db, 'users', user.id);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const data = userDocSnap.data();
+          setUserDetails(data);
+          setAddExerciseCalories(data.addExerciseCaloriesToBudget !== false);
+        }
+      } catch (error) {
+         console.error("Error fetching user details:", error);
       }
     }
-  };
+  }, [user]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchUserDetails();
+    }, [fetchUserDetails])
+  );
 
   const loadWaterReminderPreferences = async () => {
     try {
@@ -452,6 +467,26 @@ export default function Account() {
     }
   };
 
+  const handleToggleAddExerciseCalories = async (value: boolean) => {
+    if (!user || isUpdatingSetting) return;
+
+    setIsUpdatingSetting(true);
+    setAddExerciseCalories(value);
+
+    try {
+      const userDocRef = doc(db, 'users', user.id);
+      await updateDoc(userDocRef, {
+        addExerciseCaloriesToBudget: value
+      });
+    } catch (error) {
+      console.error("Error updating exercise calorie setting:", error);
+      Alert.alert("Error", "Could not save preference. Please try again.");
+      setAddExerciseCalories(!value);
+    } finally {
+      setIsUpdatingSetting(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <AccountHeader />
@@ -566,6 +601,24 @@ export default function Account() {
               </View>
             </View>
           )}
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Ionicons name="calculator-outline" size={22} color="#666" />
+              </View>
+              <Text style={styles.settingText}>Add Exercise Calories</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Switch
+                value={addExerciseCalories}
+                onValueChange={handleToggleAddExerciseCalories}
+                trackColor={{ false: '#767577', true: '#FF6B6B' }}
+                thumbColor={addExerciseCalories ? '#ff4444' : '#f4f3f4'}
+                disabled={isUpdatingSetting}
+              />
+            </View>
+          </View>
         </View>
 
         {isHealthKitConnected && (
