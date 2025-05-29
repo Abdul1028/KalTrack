@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, TextInput, StyleSheet, Dimensions, 
-  Alert, ActivityIndicator, Platform, TouchableOpacity, ScrollView 
+  Alert, ActivityIndicator, Platform, TouchableOpacity, ScrollView, KeyboardAvoidingView 
 } from 'react-native';
 import { useUser } from '@clerk/clerk-expo';
 import { Ionicons } from '@expo/vector-icons';
@@ -167,7 +167,7 @@ export default function Setup() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#FF6B6B" />
       </View>
     );
@@ -176,270 +176,274 @@ export default function Setup() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
-      <LinearGradient
-        colors={['#ffffff', '#fff5f5']}
-        style={styles.gradient}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <Animated.View 
-              style={[
-                styles.progressFill,
-                { width: `${(currentStep / 6) * 100}%` }
-              ]}
-            />
-          </View>
-          <Text style={styles.stepText}>Step {currentStep} of 6</Text>
-        </View>
-
-        <View style={styles.cardWrapper}>
-          <Animated.View 
-            entering={SlideInRight}
-            style={styles.mainCard}
+        <LinearGradient
+          colors={['#ffffff', '#fff5f5']}
+          style={styles.gradient}
+        >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
           >
-            <View style={styles.contentContainer}>
-              {currentStep === 1 && (
-                <Animated.View entering={FadeIn} style={styles.stepContent}>
-                  <LottieView
-                    source={require('../assets/animations/hourglass.json')}
-                    autoPlay
-                    loop
-                    style={styles.lottie}
-                  />
-                  <Text style={styles.title}>How old are you?</Text>
-                  <Text style={styles.subtitle}>This helps us personalize your experience</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      keyboardType="numeric"
-                      value={age}
-                      onChangeText={setAge}
-                      placeholder="Your age"
-                      placeholderTextColor="#999"
-                      maxLength={2}
-                      returnKeyType="done"
-                    />
-                    <Text style={styles.inputLabel}>years</Text>
-                  </View>
-                </Animated.View>
-              )}
-
-              {currentStep === 2 && (
-                <Animated.View entering={FadeIn} style={styles.stepContent}>
-                  <LottieView
-                    source={require('../assets/animations/gender.json')}
-                    autoPlay
-                    loop
-                    style={styles.lottie}
-                  />
-                  <Text style={styles.title}>Select your gender</Text>
-                  <View style={styles.genderContainer}>
-                    {[
-                      { id: 'male', icon: 'male', label: 'Male' },
-                      { id: 'female', icon: 'female', label: 'Female' }
-                    ].map((option) => (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={[
-                          styles.genderOption,
-                          gender === option.id && styles.selectedGender
-                        ]}
-                        onPress={() => setGender(option.id)}
-                      >
-                        <Ionicons
-                          name={option.icon}
-                          size={32}
-                          color={gender === option.id ? '#FF6B6B' : '#666'}
-                        />
-                        <Text style={[
-                          styles.genderLabel,
-                          gender === option.id && styles.selectedLabel
-                        ]}>
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </Animated.View>
-              )}
-
-              {currentStep === 3 && (
-                <Animated.View entering={FadeIn} style={styles.stepContent}>
-                  <LottieView
-                    source={require('../assets/animations/weight.json')}
-                    autoPlay
-                    loop
-                    style={styles.lottie}
-                  />
-                  <Text style={styles.title}>What's your weight?</Text>
-                  <Text style={styles.subtitle}>You can always change this later</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      keyboardType="numeric"
-                      value={weight}
-                      onChangeText={setWeight}
-                      placeholder="Your weight"
-                      placeholderTextColor="#999"
-                      maxLength={3}
-                      returnKeyType="done"
-                    />
-                    <Text style={styles.inputLabel}>kg</Text>
-                  </View>
-                </Animated.View>
-              )}
-
-              {currentStep === 4 && (
-                <Animated.View entering={FadeIn} style={styles.stepContent}>
-                  <LottieView
-                    source={require('../assets/animations/height.json')}
-                    autoPlay
-                    loop
-                    style={styles.lottie}
-                  />
-                  <Text style={styles.title}>What's your height?</Text>
-                  <View style={styles.inputWrapper}>
-                    <TextInput
-                      style={styles.input}
-                      keyboardType="numeric"
-                      value={height}
-                      onChangeText={setHeight}
-                      placeholder="Your height"
-                      placeholderTextColor="#999"
-                      maxLength={3}
-                      returnKeyType="done"
-                    />
-                    <Text style={styles.inputLabel}>cm</Text>
-                  </View>
-                </Animated.View>
-              )}
-
-              {currentStep === 5 && (
-                <Animated.View entering={FadeIn} style={styles.stepContent}>
-                  <Text style={styles.title}>Activity Level</Text>
-                  <Text style={styles.subtitle}>Select your typical activity level</Text>
-                  <ScrollView 
-                    style={styles.activityScrollContainer}
-                    contentContainerStyle={styles.activityContentContainer}
-                    showsVerticalScrollIndicator={false}
-                  >
-                    {[
-                      { id: 'sedentary', label: 'Sedentary', desc: 'Little to no exercise' },
-                      { id: 'light', label: 'Light', desc: '1-3 days/week' },
-                      { id: 'moderate', label: 'Moderate', desc: '3-5 days/week' },
-                      { id: 'active', label: 'Active', desc: '6-7 days/week' },
-                      { id: 'very_active', label: 'Very Active', desc: 'Professional athlete' }
-                    ].map((option) => (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={[
-                          styles.activityOption,
-                          activityLevel === option.id && styles.selectedActivity
-                        ]}
-                        onPress={() => setActivityLevel(option.id)}
-                      >
-                        <View style={styles.activityIconContainer}>
-                          <Ionicons 
-                            name={option.icon} 
-                            size={24} 
-                            color={activityLevel === option.id ? '#FF6B6B' : '#666'} 
-                          />
-                        </View>
-                        <View style={styles.activityInfo}>
-                          <Text style={[
-                            styles.activityLabel,
-                            activityLevel === option.id && styles.selectedActivityText
-                          ]}>
-                            {option.label}
-                          </Text>
-                          <Text style={styles.activityDesc}>{option.desc}</Text>
-                        </View>
-                        {activityLevel === option.id && (
-                          <Ionicons 
-                            name="checkmark-circle" 
-                            size={24} 
-                            color="#FF6B6B"
-                            style={styles.checkIcon}
-                          />
-                        )}
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </Animated.View>
-              )}
-
-              {currentStep === 6 && (
-                <Animated.View entering={FadeIn} style={styles.stepContent}>
-                  <Text style={styles.title}>What's your goal?</Text>
-                  <View style={styles.goalContainer}>
-                    {[
-                      { id: 'weight loss', label: 'Lose Weight', icon: 'trending-down' },
-                      { id: 'maintain', label: 'Maintain', icon: 'fitness' },
-                      { id: 'weight gain', label: 'Gain Weight', icon: 'trending-up' }
-                    ].map((option) => (
-                      <TouchableOpacity
-                        key={option.id}
-                        style={[
-                          styles.goalOption,
-                          goal === option.id && styles.selectedGoal
-                        ]}
-                        onPress={() => setGoal(option.id)}
-                      >
-                        <Ionicons
-                          name={option.icon}
-                          size={24}
-                          color={goal === option.id ? '#FF6B6B' : '#666'}
-                        />
-                        <Text style={[
-                          styles.goalLabel,
-                          goal === option.id && styles.selectedLabel
-                        ]}>
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </Animated.View>
-              )}
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBar}>
+                <Animated.View 
+                  style={[
+                    styles.progressFill,
+                    { width: `${(currentStep / 6) * 100}%` }
+                  ]}
+                />
+              </View>
+              <Text style={styles.stepText}>Step {currentStep} of 6</Text>
             </View>
 
-            <View style={styles.buttonContainer}>
-              {currentStep > 1 && (
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={handleBackStep}
-                >
-                  <LinearGradient
-                    colors={['#FF8E53', '#FF6B6B']}
-                    style={styles.gradientButton}
-                  >
-                    <Ionicons name="arrow-back" size={24} color="#fff" />
-                  </LinearGradient>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={[
-                  styles.nextButton,
-                  { width: currentStep === 1 ? '100%' : 120 }
-                ]}
-                onPress={handleNextStep}
+            <View style={styles.cardWrapper}>
+              <Animated.View 
+                entering={SlideInRight}
+                style={styles.mainCard}
               >
-                <LinearGradient
-                  colors={['#FF6B6B', '#FF8E53']}
-                  style={[styles.gradientButton, styles.nextGradient]}
-                >
-                  <Text style={styles.nextButtonText}>
-                    {currentStep === 6 ? 'Finish' : 'Continue'}
-                  </Text>
-                  {currentStep < 6 && (
-                    <Ionicons name="arrow-forward" size={24} color="#fff" style={styles.nextIcon} />
+                <View style={styles.contentContainer}>
+                  {currentStep === 1 && (
+                    <Animated.View entering={FadeIn} style={styles.stepContent}>
+                      <LottieView
+                        source={require('../assets/animations/hourglass.json')}
+                        autoPlay
+                        loop
+                        style={styles.lottie}
+                      />
+                      <Text style={styles.title}>How old are you?</Text>
+                      <Text style={styles.subtitle}>This helps us personalize your experience</Text>
+                      <View style={styles.inputWrapper}>
+                        <TextInput
+                          style={styles.input}
+                          keyboardType="numeric"
+                          value={age}
+                          onChangeText={setAge}
+                          placeholder="Your age"
+                          placeholderTextColor="#999"
+                          maxLength={2}
+                          returnKeyType="done"
+                        />
+                        <Text style={styles.inputLabel}>years</Text>
+                      </View>
+                    </Animated.View>
                   )}
-                </LinearGradient>
-              </TouchableOpacity>
+
+                  {currentStep === 2 && (
+                    <Animated.View entering={FadeIn} style={styles.stepContent}>
+                      <LottieView
+                        source={require('../assets/animations/gender.json')}
+                        autoPlay
+                        loop
+                        style={styles.lottie}
+                      />
+                      <Text style={styles.title}>Select your gender</Text>
+                      <View style={styles.genderContainer}>
+                        {[
+                          { id: 'male', icon: 'male-outline', label: 'Male' },
+                          { id: 'female', icon: 'female-outline', label: 'Female' }
+                        ].map((option) => (
+                          <TouchableOpacity
+                            key={option.id}
+                            style={[
+                              styles.genderOption,
+                              gender === option.id && styles.selectedGender
+                            ]}
+                            onPress={() => setGender(option.id)}
+                          >
+                            <Ionicons
+                              name={option.icon as any}
+                              size={32}
+                              color={gender === option.id ? '#FF6B6B' : '#666'}
+                            />
+                            <Text style={[
+                              styles.genderLabel,
+                              gender === option.id && styles.selectedLabel
+                            ]}>
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </Animated.View>
+                  )}
+
+                  {currentStep === 3 && (
+                    <Animated.View entering={FadeIn} style={styles.stepContent}>
+                      <LottieView
+                        source={require('../assets/animations/weight.json')}
+                        autoPlay
+                        loop
+                        style={styles.lottie}
+                      />
+                      <Text style={styles.title}>What's your weight?</Text>
+                      <Text style={styles.subtitle}>You can always change this later</Text>
+                      <View style={styles.inputWrapper}>
+                        <TextInput
+                          style={styles.input}
+                          keyboardType="numeric"
+                          value={weight}
+                          onChangeText={setWeight}
+                          placeholder="Your weight"
+                          placeholderTextColor="#999"
+                          maxLength={3}
+                          returnKeyType="done"
+                        />
+                        <Text style={styles.inputLabel}>kg</Text>
+                      </View>
+                    </Animated.View>
+                  )}
+
+                  {currentStep === 4 && (
+                    <Animated.View entering={FadeIn} style={styles.stepContent}>
+                      <LottieView
+                        source={require('../assets/animations/height.json')}
+                        autoPlay
+                        loop
+                        style={styles.lottie}
+                      />
+                      <Text style={styles.title}>What's your height?</Text>
+                      <View style={styles.inputWrapper}>
+                        <TextInput
+                          style={styles.input}
+                          keyboardType="numeric"
+                          value={height}
+                          onChangeText={setHeight}
+                          placeholder="Your height"
+                          placeholderTextColor="#999"
+                          maxLength={3}
+                          returnKeyType="done"
+                        />
+                        <Text style={styles.inputLabel}>cm</Text>
+                      </View>
+                    </Animated.View>
+                  )}
+
+                  {currentStep === 5 && (
+                    <Animated.View entering={FadeIn} style={styles.stepContent}>
+                      <Text style={styles.title}>Activity Level</Text>
+                      <Text style={styles.subtitle}>Select your typical activity level</Text>
+                      <ScrollView 
+                        style={styles.activityScrollContainer}
+                        contentContainerStyle={styles.activityContentContainer}
+                        showsVerticalScrollIndicator={false}
+                      >
+                        {[
+                          { id: 'sedentary', label: 'Sedentary', desc: 'Little to no exercise' },
+                          { id: 'light', label: 'Light', desc: '1-3 days/week' },
+                          { id: 'moderate', label: 'Moderate', desc: '3-5 days/week' },
+                          { id: 'active', label: 'Active', desc: '6-7 days/week' },
+                          { id: 'very_active', label: 'Very Active', desc: 'Professional athlete' }
+                        ].map((option) => (
+                          <TouchableOpacity
+                            key={option.id}
+                            style={[
+                              styles.activityOption,
+                              activityLevel === option.id && styles.selectedActivity
+                            ]}
+                            onPress={() => setActivityLevel(option.id)}
+                          >
+                            <View style={styles.activityInfo}>
+                              <Text style={[
+                                styles.activityLabel,
+                                activityLevel === option.id && styles.selectedActivityText
+                              ]}>
+                                {option.label}
+                              </Text>
+                              <Text style={styles.activityDesc}>{option.desc}</Text>
+                            </View>
+                            {activityLevel === option.id && (
+                              <Ionicons 
+                                name="checkmark-circle" 
+                                size={24} 
+                                color="#FF6B6B"
+                                style={styles.checkIcon}
+                              />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </Animated.View>
+                  )}
+
+                  {currentStep === 6 && (
+                    <Animated.View entering={FadeIn} style={styles.stepContent}>
+                      <Text style={styles.title}>What's your goal?</Text>
+                      <View style={styles.goalContainer}>
+                        {[
+                          { id: 'weight_loss', label: 'Lose Weight', icon: 'trending-down-outline' },
+                          { id: 'maintain', label: 'Maintain', icon: 'fitness-outline' },
+                          { id: 'weight_gain', label: 'Gain Weight', icon: 'trending-up-outline' }
+                        ].map((option) => (
+                          <TouchableOpacity
+                            key={option.id}
+                            style={[
+                              styles.goalOption,
+                              goal === option.id && styles.selectedGoal
+                            ]}
+                            onPress={() => setGoal(option.id)}
+                          >
+                            <Ionicons
+                              name={option.icon as any}
+                              size={24}
+                              color={goal === option.id ? '#FF6B6B' : '#666'}
+                            />
+                            <Text style={[
+                              styles.goalLabel,
+                              goal === option.id && styles.selectedLabel
+                            ]}>
+                              {option.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </Animated.View>
+                  )}
+                </View>
+
+                <View style={styles.buttonContainer}>
+                  {currentStep > 1 && (
+                    <TouchableOpacity
+                      style={styles.backButton}
+                      onPress={handleBackStep}
+                    >
+                      <LinearGradient
+                        colors={['#FF8E53', '#FF6B6B']}
+                        style={styles.gradientButton}
+                      >
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    style={[
+                      styles.nextButton,
+                      { width: currentStep === 1 ? '100%' : 120 }
+                    ]}
+                    onPress={handleNextStep}
+                  >
+                    <LinearGradient
+                      colors={['#FF6B6B', '#FF8E53']}
+                      style={[styles.gradientButton, styles.nextGradient]}
+                    >
+                      <Text style={styles.nextButtonText}>
+                        {currentStep === 6 ? 'Finish' : 'Continue'}
+                      </Text>
+                      {currentStep < 6 && (
+                        <Ionicons name="arrow-forward" size={24} color="#fff" style={styles.nextIcon} />
+                      )}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
             </View>
-          </Animated.View>
-        </View>
-      </LinearGradient>
+          </ScrollView>
+        </LinearGradient>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

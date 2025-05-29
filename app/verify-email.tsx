@@ -83,8 +83,10 @@ export default function VerifyEmail() {
 
   return (
     <KeyboardAvoidingView 
+    
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
+      
     >
       <View style={styles.content}>
         <View style={styles.iconContainer}>
@@ -111,6 +113,7 @@ export default function VerifyEmail() {
               maxLength={1}
               selectTextOnFocus
               placeholder="0"
+              returnKeyType='done'
               placeholderTextColor="#CCC"
               returnKeyLabel='done'
             />

@@ -38,9 +38,12 @@ const isSmallDevice = width < 375;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowAlert:true,
+    
   }),
 });
 
@@ -308,7 +311,7 @@ export default function Account() {
           data: { type: 'water-reminder' }
         },
         trigger: {
-          type: 'timeInterval',
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
           seconds: intervalMinutes * 60,
           repeats: true,
           channelId: 'water-reminders'
@@ -369,7 +372,7 @@ export default function Account() {
 
     try {
       // First check if HealthKit is available
-      AppleHealthKit.isAvailable((error: string, result: boolean) => {
+      AppleHealthKit.isAvailable((error: Object, result: boolean) => {
         if (error) {
           console.log('Error checking HealthKit availability:', error);
           return;
@@ -434,14 +437,14 @@ export default function Account() {
       });
 
       // Fetch weight
-      AppleHealthKit.getLatestWeight(options, (err: any, results: any) => {
+      AppleHealthKit.getLatestWeight({}, (err: any, results: any) => {
         if (!err) {
           setHealthData(prev => ({ ...prev, weight: results?.value || 0 }));
         }
       });
 
       // Fetch height
-      AppleHealthKit.getLatestHeight(options, (err: any, results: any) => {
+      AppleHealthKit.getLatestHeight({}, (err: any, results: any) => {
         if (!err) {
           setHealthData(prev => ({ ...prev, height: results?.value || 0 }));
         }
@@ -515,11 +518,11 @@ export default function Account() {
 
         <View style={styles.settingsSection}>
           <Text style={styles.sectionTitle}>Settings</Text>
-          {renderSettingItem('person-outline', 'Edit Profile', () => {})}
+          {renderSettingItem('person-outline', 'Edit Profile', () => router.push('/edit-profile'))}
           {renderSettingItem('notifications-outline', 'Notifications', () => {}, true)}
-          {renderSettingItem('shield-checkmark-outline', 'Privacy', () => {})}
-          {renderSettingItem('help-circle-outline', 'Help & Support', () => {})}
-          {renderSettingItem('information-circle-outline', 'About', () => {})}
+          {renderSettingItem('shield-checkmark-outline', 'Privacy', () => router.push('/privacy'))}
+          {renderSettingItem('help-circle-outline', 'Help & Support', () => router.push('/help-support'))}
+          {renderSettingItem('information-circle-outline', 'About', () => router.push('/about'))}
           {renderSettingItem('barcode-outline', 'Scan Food', () => {
             setShowScanner(true)
           })}

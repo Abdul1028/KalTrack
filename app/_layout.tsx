@@ -140,6 +140,30 @@ export default function RootLayout() {
         }
       } />
 
+
+<Stack.Screen name="privacy" options={
+        {
+          headerShown:false,
+        }
+      } />
+
+<Stack.Screen name="about" options={
+        {
+          headerShown:false,
+        }
+      } />
+
+<Stack.Screen name="help-support" options={
+        {
+          headerShown:false,
+        }
+      } />
+
+<Stack.Screen name="edit-profile" options={
+        {
+          headerShown:false,
+        }
+      } />
     <Stack.Screen
       name="log-workout"
       options={{
@@ -149,6 +173,14 @@ export default function RootLayout() {
       }}
     />
     </Stack>
+
+    
+
+    
+
+
+
+
     </GestureHandlerRootView>
 
     </ClerkLoaded>
