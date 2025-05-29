@@ -32,6 +32,9 @@ importers:
       '@react-native-google-signin/google-signin':
         specifier: ^13.1.0
         version: 13.1.0(expo@53.0.9(@babel/core@7.26.0)(@expo/metro-runtime@5.0.4(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0)))(react-native-webview@13.13.5(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0))(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0))(react-dom@19.0.0(react@19.0.0))(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)
+      '@react-native-picker/picker':
+        specifier: ^2.11.0
+        version: 2.11.0(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)
       '@react-navigation/native':
         specifier: ^7.0.0
         version: 7.0.14(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)
@@ -148,7 +151,7 @@ importers:
         version: 5.12.5(react-native-safe-area-context@5.4.0(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0))(react-native-vector-icons@10.2.0)(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)
       react-native-picker-select:
         specifier: ^9.3.1
-        version: 9.3.1(@react-native-picker/picker@2.10.2(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0))
+        version: 9.3.1(@react-native-picker/picker@2.11.0(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0))
       react-native-reanimated:
         specifier: ~3.17.4
         version: 3.17.5(@babel/core@7.26.0)(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)
@@ -1384,8 +1387,8 @@ packages:
       react: '>=16'
       react-native: '>=0.57'
 
-  '@react-native-picker/picker@2.10.2':
-    resolution: {integrity: sha512-kr3OvCRwTYjR/OKlb52k4xmQVU7dPRIALqpyiihexdJxEgvc1smnepgqCeM9oXmNSG4YaV5/RSxFlLC5Z/T/Eg==}
+  '@react-native-picker/picker@2.11.0':
+    resolution: {integrity: sha512-QuZU6gbxmOID5zZgd/H90NgBnbJ3VV6qVzp6c7/dDrmWdX8S0X5YFYgDcQFjE3dRen9wB9FWnj2VVdPU64adSg==}
     peerDependencies:
       react: '*'
       react-native: '*'
@@ -6746,7 +6749,7 @@ snapshots:
       react: 19.0.0
       react-native: 0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0)
 
-  '@react-native-picker/picker@2.10.2(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)':
+  '@react-native-picker/picker@2.11.0(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)':
     dependencies:
       react: 19.0.0
       react-native: 0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0)
@@ -9923,9 +9926,9 @@ snapshots:
       react-native-vector-icons: 10.2.0
       use-latest-callback: 0.1.11(react@19.0.0)
 
-  react-native-picker-select@9.3.1(@react-native-picker/picker@2.10.2(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)):
+  react-native-picker-select@9.3.1(@react-native-picker/picker@2.11.0(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)):
     dependencies:
-      '@react-native-picker/picker': 2.10.2(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)
+      '@react-native-picker/picker': 2.11.0(react-native@0.79.2(@babel/core@7.26.0)(@types/react@18.3.18)(react@19.0.0))(react@19.0.0)
       lodash.isequal: 4.5.0
       lodash.isobject: 3.0.2
 

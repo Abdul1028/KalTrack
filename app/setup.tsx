@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import LottieView from 'lottie-react-native';
+import { Picker } from '@react-native-picker/picker';
 
 const { width, height } = Dimensions.get('window');
 
@@ -217,18 +218,19 @@ export default function Setup() {
                       />
                       <Text style={styles.title}>How old are you?</Text>
                       <Text style={styles.subtitle}>This helps us personalize your experience</Text>
+                      <Text style={styles.inputLabel}>In years</Text>
                       <View style={styles.inputWrapper}>
-                        <TextInput
-                          style={styles.input}
-                          keyboardType="numeric"
-                          value={age}
-                          onChangeText={setAge}
-                          placeholder="Your age"
-                          placeholderTextColor="#999"
-                          maxLength={2}
-                          returnKeyType="done"
-                        />
-                        <Text style={styles.inputLabel}>years</Text>
+                        <Picker
+                          selectedValue={age}
+                          onValueChange={(itemValue) => setAge(itemValue)}
+                          style={styles.pickerWrapper}
+                          itemStyle={styles.pickerItem}
+                        > 
+                          <Picker.Item label="Select age" value="" />
+                          {[...Array(83)].map((_, i) => (
+                            <Picker.Item key={i+18} label={`${i+18}`} value={`${i+18}`} />
+                          ))}
+                        </Picker>
                       </View>
                     </Animated.View>
                   )}
@@ -282,18 +284,19 @@ export default function Setup() {
                       />
                       <Text style={styles.title}>What's your weight?</Text>
                       <Text style={styles.subtitle}>You can always change this later</Text>
+                      <Text style={styles.inputLabel}>In kgs</Text>
                       <View style={styles.inputWrapper}>
-                        <TextInput
-                          style={styles.input}
-                          keyboardType="numeric"
-                          value={weight}
-                          onChangeText={setWeight}
-                          placeholder="Your weight"
-                          placeholderTextColor="#999"
-                          maxLength={3}
-                          returnKeyType="done"
-                        />
-                        <Text style={styles.inputLabel}>kg</Text>
+                        <Picker
+                          selectedValue={weight}
+                          onValueChange={(itemValue) => setWeight(itemValue)}
+                          style={styles.pickerWrapper}
+                          itemStyle={styles.pickerItem}
+                        >
+                          <Picker.Item label="Select weight" value="" />
+                          {[...Array(381)].map((_, i) => (
+                            <Picker.Item key={i+ 20} label={`${i+20}`} value={`${i+20}`} />
+                          ))}
+                        </Picker>
                       </View>
                     </Animated.View>
                   )}
@@ -307,18 +310,19 @@ export default function Setup() {
                         style={styles.lottie}
                       />
                       <Text style={styles.title}>What's your height?</Text>
+                      <Text style={styles.inputLabel}>In cms</Text>
                       <View style={styles.inputWrapper}>
-                        <TextInput
-                          style={styles.input}
-                          keyboardType="numeric"
-                          value={height}
-                          onChangeText={setHeight}
-                          placeholder="Your height"
-                          placeholderTextColor="#999"
-                          maxLength={3}
-                          returnKeyType="done"
-                        />
-                        <Text style={styles.inputLabel}>cm</Text>
+                        <Picker
+                          selectedValue={height}
+                          onValueChange={(itemValue) => setHeight(itemValue)}
+                          style={styles.pickerWrapper}
+                          itemStyle={styles.pickerItem}
+                        >
+                          <Picker.Item label="Select height" value="" />
+                          {[...Array(161)].map((_, i) => (
+                            <Picker.Item key={i+100} label={`${i+100}`} value={`${i+120}`} />
+                          ))}
+                        </Picker>
                       </View>
                     </Animated.View>
                   )}
@@ -475,6 +479,7 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: 14,
     color: '#666',
+    paddingTop:10,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -529,7 +534,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f8f8f8',
+    backgroundColor: 'white',
     borderRadius: 12,
     paddingHorizontal: 15,
     marginTop: 20,
@@ -545,8 +550,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   inputLabel: {
+    fontWeight:"bold",
     fontSize: 16,
-    color: '#666',
+    color: 'black',
+    textAlign:"center",
+
   },
   genderContainer: {
     flexDirection: 'row',
@@ -678,4 +686,23 @@ const styles = StyleSheet.create({
   selectedGoalText: {
     color: '#FF6B6B',
   },
+
+  pickerWrapper: {
+    flex: 1 ,
+    color:"#333" ,
+    backgroundColor:"white",
+  },
+  pickerItem: {
+    fontSize: 18 ,
+    color:"#333" ,
+    backgroundColor:"white" , 
+    borderRadius:12 ,
+    paddingHorizontal:15 ,
+    paddingVertical:10 , 
+    borderWidth:1 , 
+    borderColor:"#f8f8f8" 
+  }
+
+
+
 });
