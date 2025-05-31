@@ -222,7 +222,7 @@ const TodaysMeals = () => {
 
       setMeals(mealsData);
     } catch (error) {
-      console.error('Error fetching meals:', error);
+      console.log('Error fetching meals:', error);
     } finally {
       setLoading(false);
     }
@@ -327,7 +327,7 @@ const Home = () => {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching user details:", error);
+      console.log("Error fetching user details:", error);
       return null;
     }
   }, [user]);
@@ -343,7 +343,7 @@ const Home = () => {
       }
       return { waterIntake: 0, totalCaloriesConsumed: 0, totalCaloriesBurnedExercise: 0 };
     } catch (error) {
-      console.error("Error fetching daily data:", error);
+      console.log("Error fetching daily data:", error);
       return null;
     }
   }, [user]);
@@ -419,7 +419,7 @@ const Home = () => {
         });
 
       } catch (error) {
-        console.error('Pedometer error:', error);
+        console.log('Pedometer error:', error);
         setStepCount(prev => ({
           ...prev,
           loading: false,
@@ -446,7 +446,7 @@ const Home = () => {
           }));
         }
       } catch (error) {
-        console.error('Step refresh error:', error);
+        console.log('Step refresh error:', error);
       }
     }, 60000);
 
@@ -544,7 +544,7 @@ const Home = () => {
       }, { merge: true });
 
     } catch (error) {
-      console.error("Error updating water intake:", error);
+      console.log("Error updating water intake:", error);
       Alert.alert("Error", "Could not update water intake. Please try again.");
       loadAllData();
     }
@@ -585,7 +585,7 @@ const Home = () => {
       setDishes(response.data.hints);
       setLoading(false);
     } catch (error) {
-      console.error(error);
+      console.log(error);
       setLoading(false);
     }
   };

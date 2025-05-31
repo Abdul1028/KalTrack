@@ -66,8 +66,7 @@
           "healthSharePermission": "Allow KalTrack to access your health data",
           "healthUpdatePermission": "Allow KalTrack to update your health data"
         }
-      ],
-      "expo-barcode-scanner"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

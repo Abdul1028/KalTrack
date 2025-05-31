@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Platform, Image, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Platform, Image, Modal, ActivityIndicator ,ScrollView} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useUser, useAuth } from '@clerk/clerk-expo';
-import * as ImagePicker from 'expo-image-picker';
+// import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
 import * as FileSystem from 'expo-file-system';
 
@@ -120,39 +120,39 @@ const EditProfile = () => {
 
     console.log("password enabled: ", user?.passwordEnabled);
 
-    const handlePickImage = async () => {
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.7,
-        });
+    // const handlePickImage = async () => {
+    //     const result = await ImagePicker.launchImageLibraryAsync({
+    //         mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    //         allowsEditing: true,
+    //         aspect: [1, 1],
+    //         quality: 0.7,
+    //     });
 
-        if (!result.canceled && result.assets.length > 0) {
-            setImageUploading(true);
+    //     if (!result.canceled && result.assets.length > 0) {
+    //         setImageUploading(true);
 
-            try {
-                const uri = result.assets[0].uri;
+    //         try {
+    //             const uri = result.assets[0].uri;
 
-                // Get Blob from local file URI
-                const response = await fetch(uri);
-                let blob = await response.blob();
-                blob = blob.slice(0, blob.size, 'image/jpeg');
+    //             // Get Blob from local file URI
+    //             const response = await fetch(uri);
+    //             let blob = await response.blob();
+    //             blob = blob.slice(0, blob.size, 'image/jpeg');
 
-                // Create new Blob with correct type (fixes Clerk error)
-                blob = blob.slice(0, blob.size, 'image/jpeg'); // or 'image/png'
+    //             // Create new Blob with correct type (fixes Clerk error)
+    //             blob = blob.slice(0, blob.size, 'image/jpeg'); // or 'image/png'
 
-                // Upload using Clerk's method
-                await user?.setProfileImage({ file: blob });
+    //             // Upload using Clerk's method
+    //             await user?.setProfileImage({ file: blob });
 
-                Alert.alert('Profile Image Updated!');
-            } catch (err: any) {
-                Alert.alert('Error in update ', err.message || 'Failed to update profile image');
-            } finally {
-                setImageUploading(false);
-            }
-        }
-    };
+    //             Alert.alert('Profile Image Updated!');
+    //         } catch (err: any) {
+    //             Alert.alert('Error in update ', err.message || 'Failed to update profile image');
+    //         } finally {
+    //             setImageUploading(false);
+    //         }
+    //     }
+    // };
 
     const handleOpenPasswordModal = () => {
         if (!user?.passwordEnabled) {
@@ -166,6 +166,7 @@ const EditProfile = () => {
     };
 
     return (
+        <ScrollView>
         <View style={styles.container}>
             <LinearGradient colors={['#FF6B6B', '#FF8E53']} style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -175,7 +176,7 @@ const EditProfile = () => {
             </LinearGradient>
             <View style={styles.card}>
                 <View style={styles.avatarSection}>
-                    <TouchableOpacity onPress={handlePickImage} disabled={imageUploading}>
+                    <TouchableOpacity disabled={imageUploading}>
                         {user?.imageUrl ? (
                             <Image source={{ uri: user.imageUrl }} style={styles.avatar} />
                         ) : (
@@ -302,6 +303,7 @@ const EditProfile = () => {
                 </View>
             </Modal>
         </View>
+        </ScrollView>
     );
 };
 
