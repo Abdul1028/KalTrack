@@ -498,7 +498,13 @@ export default function Account() {
         <View style={styles.metricsContainer}>
           {renderMetricCard(
             'Goal',
-            userDetails?.userGoal === "weight gain" ? "Gain" : userDetails?.userGoal === "weight loss" ? "Loss" : "Not Set",
+            userDetails?.userGoal === "weight gain"
+              ? "Gain"
+              : userDetails?.userGoal === "weight loss"
+              ? "Loss"
+              : userDetails?.userGoal === "maintain"
+              ? "Maintain"
+              : "Not Set",
             'fitness-outline',
             '#FF6B6B'
           )}
