@@ -18,9 +18,10 @@ export default function PortionSelector() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [weight, setWeight] = useState('100');
+  const [sliderValue, setSliderValue] = useState(100);
   const [nutrients, setNutrients] = useState({
     calories: Number(params.baseCalories),
-    protein: Number(params.baseProtein),
+    protein: Number(params.baseProtein),  
     fat: Number(params.baseFat),
     carbs: Number(params.baseCarbs),
     fiber: Number(params.baseFiber)
@@ -48,6 +49,24 @@ export default function PortionSelector() {
       fiber: Math.round(baseNutrients.current.fiber * ratio * 10) / 10,
     });
   }, [weight]); // Only depend on weight changes
+
+  // When weight input changes, update both states (safely)
+const handleWeightChange = (text: string) => {
+  const numericText = text.replace(/[^0-9]/g, '');
+  setWeight(numericText);
+
+  const parsed = parseInt(numericText);
+  if (!isNaN(parsed)) {
+    setSliderValue(parsed);
+  }
+};
+
+// When slider changes, update both states
+const handleSliderChange = (value: number) => {
+  const rounded = Math.round(value);
+  setSliderValue(rounded);
+  setWeight(rounded.toString());
+};
 
   const handleConfirm = () => {
     router.push({
@@ -92,7 +111,7 @@ export default function PortionSelector() {
             <TextInput
               style={styles.input}
               value={weight}
-              onChangeText={(text) => setWeight(text.replace(/[^0-9]/g, ''))}
+              onChangeText={handleWeightChange}
               keyboardType="numeric"
               maxLength={4}
             />
@@ -104,11 +123,11 @@ export default function PortionSelector() {
             minimumValue={0}
             maximumValue={500}
             value={parseInt(weight)}
-            onValueChange={(value) => setWeight(Math.round(value).toString())}
+            onValueChange={handleSliderChange}
             minimumTrackTintColor="#FF8C00"
             maximumTrackTintColor="#ddd"
           />
-          
+
           <View style={styles.sliderLabels}>
             <Text>0g</Text>
             <Text>250g</Text>
