@@ -68,8 +68,6 @@ export async function scheduleMidnightNotification(id:any) {
     },
   });
 }
-
-
 export async function getNotificationBody(userId: any) {
   const currentDate = moment().format('DD-MM-YYYY');
 

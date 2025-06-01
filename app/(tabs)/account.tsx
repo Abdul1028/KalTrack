@@ -560,8 +560,12 @@ export default function Account() {
                 maximumValue={120}
                 step={1}
                 value={sliderValue}
-                onValueChange={(value) => setSliderValue(Math.round(value))}
-                onSlidingComplete={scheduleRepeatingWaterReminder}
+                onSlidingComplete={(value) => {
+                  const rounded = Math.round(value);
+                  setSliderValue(rounded);
+                  setNotificationInterval(rounded);
+                  scheduleRepeatingWaterReminder(rounded);
+                }}
                 minimumTrackTintColor="#FF6B6B"
                 maximumTrackTintColor="#ddd"
                 thumbTintColor="#FF6B6B"
