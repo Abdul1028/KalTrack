@@ -59,7 +59,7 @@ const MEASURE_RANGES = {
 export default function SelectedFoods() {
   const { user } = useUser();
   const params = useLocalSearchParams();
-  const [foods, setFoods] = useState([]);
+  const [foods, setFoods] = useState<any[]>([]);
   const [totalNutrients, setTotalNutrients] = useState({
     calories: 0,
     protein: 0,
@@ -72,9 +72,9 @@ export default function SelectedFoods() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (params.selectedFoods) {
+    if (typeof params.selectedFoods === 'string' && params.selectedFoods) {
       try {
-        const parsedFoods = JSON.parse(params.selectedFoods).map(food => ({
+        const parsedFoods = JSON.parse(params.selectedFoods).map((food: any) => ({
           ...food,
           measureLabel: 'g',
           quantity: 10,
@@ -100,8 +100,8 @@ export default function SelectedFoods() {
     }
   }, []);
 
-  const updateTotalNutrients = (currentFoods) => {
-    const totals = currentFoods.reduce((acc, food) => {
+  const updateTotalNutrients = (currentFoods: any[]) => {
+    const totals = currentFoods.reduce((acc: any, food: any) => {
       const measureType = food.measureLabel || 'g';
       const gramsMultiplier = MEASURE_CONVERSIONS[measureType];
       const quantityInGrams = (food.quantity || 10) * gramsMultiplier;
@@ -128,15 +128,15 @@ export default function SelectedFoods() {
     });
   };
 
-  const updateFoodQuantity = (index, quantity) => {
+  const updateFoodQuantity = (index: number, quantity: number) => {
     const newFoods = [...foods];
     newFoods[index] = { ...newFoods[index], quantity };
     setFoods(newFoods);
     updateTotalNutrients(newFoods);
   };
 
-  const handleRemoveFood = (index) => {
-    const newFoods = foods.filter((_, i) => i !== index);
+  const handleRemoveFood = (index: number) => {
+    const newFoods = foods.filter((_: any, i: number) => i !== index);
     setFoods(newFoods);
     updateTotalNutrients(newFoods);
   };
@@ -320,10 +320,10 @@ export default function SelectedFoods() {
                     maximumValue={MEASURE_RANGES[food.measureLabel || 'g'].max}
                     step={MEASURE_RANGES[food.measureLabel || 'g'].step}
                     value={food.quantity || 10}
-                    onValueChange={(value) => {
+                    onSlidingComplete={(value) => {
                       const newFoods = [...foods];
-                      newFoods[index] = { 
-                        ...food, 
+                      newFoods[index] = {
+                        ...food,
                         quantity: value,
                         measureLabel: food.measureLabel || 'g'
                       };

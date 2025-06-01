@@ -18,7 +18,9 @@ export default function PortionSelector() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [weight, setWeight] = useState('100');
+  const [inputWeight, setInputWeight] = useState('100');
   const [sliderValue, setSliderValue] = useState(100);
+  const [value, setValue] = useState(100);
   const [nutrients, setNutrients] = useState({
     calories: Number(params.baseCalories),
     protein: Number(params.baseProtein),  
@@ -50,23 +52,34 @@ export default function PortionSelector() {
     });
   }, [weight]); // Only depend on weight changes
 
-  // When weight input changes, update both states (safely)
-const handleWeightChange = (text: string) => {
-  const numericText = text.replace(/[^0-9]/g, '');
-  setWeight(numericText);
+  // When weight input changes, update only the inputWeight state
+  const handleWeightInputChange = (text: string) => {
+    const numericText = text.replace(/[^0-9]/g, '');
+    setInputWeight(numericText);
+    const rounded = Math.round(value);
+    setSliderValue(rounded);
+  };
 
-  const parsed = parseInt(numericText);
-  if (!isNaN(parsed)) {
-    setSliderValue(parsed);
-  }
-};
+  // When user finishes editing input, update weight and slider
+  const handleWeightInputEnd = () => {
+    if (inputWeight === '') {
+      setInputWeight(weight); // revert to last valid value
+      return;
+    }
+    const parsed = parseInt(inputWeight);
+    if (!isNaN(parsed)) {
+      setWeight(parsed.toString());
+      setSliderValue(parsed);
+    }
+  };
 
-// When slider changes, update both states
-const handleSliderChange = (value: number) => {
-  const rounded = Math.round(value);
-  setSliderValue(rounded);
-  setWeight(rounded.toString());
-};
+  // When slider changes, update both states
+  const handleSliderChange = (value: number) => {
+    const rounded = Math.round(value);
+    setSliderValue(rounded);
+    setWeight(rounded.toString());
+    setInputWeight(rounded.toString());
+  };
 
   const handleConfirm = () => {
     router.push({
@@ -110,8 +123,10 @@ const handleSliderChange = (value: number) => {
           <View style={styles.weightInput}>
             <TextInput
               style={styles.input}
-              value={weight}
-              onChangeText={handleWeightChange}
+              value={inputWeight}
+              onChangeText={handleWeightInputChange}
+              onBlur={handleWeightInputEnd}
+              onSubmitEditing={handleWeightInputEnd}
               keyboardType="numeric"
               maxLength={4}
             />
@@ -122,8 +137,14 @@ const handleSliderChange = (value: number) => {
             style={styles.slider}
             minimumValue={0}
             maximumValue={500}
-            value={parseInt(weight)}
-            onValueChange={handleSliderChange}
+            value={sliderValue}
+            step={1}
+            onSlidingComplete={value => {
+              const rounded = Math.round(value);
+              setSliderValue(rounded);
+              setWeight(rounded.toString());
+              setInputWeight(rounded.toString());
+            }}
             minimumTrackTintColor="#FF8C00"
             maximumTrackTintColor="#ddd"
           />
