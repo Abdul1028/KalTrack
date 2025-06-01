@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
   centerValue: {
     fontSize: 26,
     fontWeight: 'bold',
-    color: '#FF6B6B',
+    color: 'black',
   },
   centerText: {
     fontSize: 13,
