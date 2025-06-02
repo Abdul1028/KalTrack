@@ -498,9 +498,9 @@ export default function Account() {
         <View style={styles.metricsContainer}>
           {renderMetricCard(
             'Goal',
-            userDetails?.userGoal === "weight gain"
+            userDetails?.userGoal === "weight_gain"
               ? "Gain"
-              : userDetails?.userGoal === "weight loss"
+              : userDetails?.userGoal === "weight_loss"
               ? "Loss"
               : userDetails?.userGoal === "maintain"
               ? "Maintain"

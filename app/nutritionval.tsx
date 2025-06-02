@@ -187,7 +187,7 @@ async function updateNutritionData(userId:any, foodData:any, mealType:any) {
       carbs: Number(existingData.carbs || 0) + newCarbs,
     };
 
-    await setDoc(nutritionDocRef, updatedData);
+    await setDoc(nutritionDocRef, updatedData, { merge: true });
   } else {
     const newData = {
       calories: newCalories,
@@ -195,7 +195,7 @@ async function updateNutritionData(userId:any, foodData:any, mealType:any) {
       carbs: newCarbs,
     };
 
-    await setDoc(nutritionDocRef, newData);
+    await setDoc(nutritionDocRef, newData, { merge: true });
   }
   setLoading(false);
   Alert.alert("Meals Nutrition Updated")

@@ -191,7 +191,7 @@ const Statistics = () => {
           const data = docSnap.data();
           return {
             date: dateLabel,
-            consumed: data.totalCaloriesConsumed || 0,
+            consumed: data.calories || 0,
             burned: data.totalCaloriesBurnedExercise || 0,
           };
         } else {
