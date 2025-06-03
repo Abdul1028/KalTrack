@@ -562,8 +562,8 @@ export default function Account() {
               </Text>
               <Slider
                 style={styles.slider}
-                minimumValue={1}
-                maximumValue={120}
+                minimumValue={15}
+                maximumValue={180}
                 step={1}
                 value={sliderValue}
                 onSlidingComplete={(value) => {
@@ -577,8 +577,8 @@ export default function Account() {
                 thumbTintColor="#FF6B6B"
               />
               <View style={styles.sliderLabels}>
-                <Text style={styles.sliderLabel}>1m</Text>
-                <Text style={styles.sliderLabel}>120m</Text>
+                <Text style={styles.sliderLabel}>15m</Text>
+                <Text style={styles.sliderLabel}>180m</Text>
               </View>
             </Animated.View>
           )}

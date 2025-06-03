@@ -42,31 +42,32 @@ import { setLogLevel } from "firebase/app";
 
 // Request permission and schedule the notification with actions
 export async function scheduleMidnightNotification(id:any) {
-  console.log("notifications scheduled")
+  console.log("notifications scheduled");
 
   // Cancel any previously scheduled notifications
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  let token;
+  // Request notification permissions
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') {
     alert('Permission to send notifications was denied');
     return;
   }
-// Schedule the notification with action buttons
+
+  // Schedule the notification for midnight every day
   await Notifications.scheduleNotificationAsync({
     content: {
       title: "Health Update",
       body: await getNotificationBody(id),
       sound: true,
     },
-
     trigger: {
-      hour: 23,      // 5 PM
-      minute: 59,     // Time for daily notification
-      repeats: true, // Repeat every day
-    },
+      hour: 0,      // 12 AM midnight
+      minute: 50,    // 00 minutes
+      repeats: true // Repeat every day
+    } as any,
   });
+  console.log("Notification scheduled for midnight with dynamic body.");
 }
 export async function getNotificationBody(userId: any) {
   const currentDate = moment().format('DD-MM-YYYY');

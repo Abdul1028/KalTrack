@@ -52,7 +52,7 @@ const About = () => {
           </View>
           <Text style={styles.sectionText}>
             For feedback, support, or partnership inquiries, email us at
-            <Text style={styles.email}>rasoolas2003@gmail.com</Text>
+            <Text style={styles.email}> rasoolas2003@gmail.com</Text>
           </Text>
         </View>
         <View style={styles.divider} />

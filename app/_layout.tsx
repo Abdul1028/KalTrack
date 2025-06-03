@@ -5,11 +5,11 @@ import * as SecureStore from 'expo-secure-store'
 import Home from "./setup";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
-import { scheduleMidnightNotification } from "./nutritionval";
+// import { scheduleMidnightNotification } from "./nutritionval";
+
 
 import { Alert, View, Text } from 'react-native';
 import * as Notifications from 'expo-notifications';
-
 const tokenCache = {
   async getToken(key: string) {
     try {
@@ -43,27 +43,7 @@ if (!publishableKey) {
 }
 
 export default function RootLayout() {
-  useEffect(() => {
 
-    //Previous uncomment if notifications gives error :(
-
-    // // Schedule the notification with actions when the app loads
-    // scheduleNotificationWithActions();
-    //  // Add a notification response listener
-    //  const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-    //   // Handle the notification click
-    //   // handleNotificationClick(response);
-    // });
-    // // Cleanup subscription on unmount
-    // return () => subscription.remove();
-
-    scheduleMidnightNotification()
-
-
-    
-  }, 
-  
-  []);
 
   // // Function to handle notification click
   // function handleNotificationClick(response :any) {

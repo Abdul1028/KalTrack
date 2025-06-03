@@ -21,7 +21,6 @@ import { useUser } from '@clerk/clerk-expo';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import LottieView from 'lottie-react-native';
-import { scheduleMidnightNotification } from '../nutritionval';
 import axios from 'axios';
 import { StatusBar } from 'expo-status-bar';
 import { Pedometer } from 'expo-sensors';
@@ -31,6 +30,9 @@ import moment from 'moment';
 
 const { width, height } = Dimensions.get('window');
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { scheduleDailyNotification, scheduleSundayMotivation } from '../services/NotificationService'
+import { deleteNotificationChannelGroupAsync } from 'expo-notifications';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const isSmallDevice = SCREEN_WIDTH < 375;
@@ -315,6 +317,24 @@ const Home = () => {
     outputRange: [0, -50]
   });
 
+
+  // Schedule Notification
+  useEffect(() => {
+
+    const checkAndSchedule = async () => {
+      console.log("scheduling notification on render")
+      if (!user?.id) return;
+      await scheduleDailyNotification(user.id)
+      await scheduleSundayMotivation()
+      console.log("scheduled")
+    };
+
+    checkAndSchedule()
+
+  }, [user?.id]);
+
+
+
   const getCurrentDateDocId = () => moment().format('DD-MM-YYYY');
 
   const fetchUserDetails = useCallback(async () => {
@@ -365,11 +385,15 @@ const Home = () => {
     ]);
 
     setUserDetails(details);
+    
     setDailySummary(summary);
 
     setWaterIntake(summary?.waterIntake || 0);
 
     setIsLoading(false);
+    console.log("forced shedule on callback")
+    scheduleDailyNotification(user.id)
+
     console.log("Home screen data loaded.");
   }, [user, fetchUserDetails, fetchDailyData]);
 
@@ -400,6 +424,9 @@ const Home = () => {
         const start = new Date();
         start.setHours(0, 0, 0, 0);
 
+
+
+        if (Platform.OS == "ios"){
         const result = await Pedometer.getStepCountAsync(start, end);
         if (result) {
           initialSteps = result.steps;
@@ -409,6 +436,32 @@ const Home = () => {
             loading: false
           }));
         }
+      }
+
+      else{
+
+        initialSteps = 0;
+        setStepCount({
+          steps: 0,
+          loading: false,
+          error: null,
+        });
+
+        subscription = Pedometer.watchStepCount((result) => {
+          console.log("New steps detected:", result.steps);
+          // Accumulate steps from app open
+          initialSteps += result.steps;
+          setStepCount({
+            steps: initialSteps,
+            loading: false,
+            error: null,
+          });
+
+
+          console.log(initialSteps)
+        });
+
+      }
 
         subscription = Pedometer.watchStepCount(result => {
           setStepCount(prev => ({
@@ -417,6 +470,8 @@ const Home = () => {
             loading: false
           }));
         });
+
+        console.log(stepCount)
 
       } catch (error) {
         console.log('Pedometer error:', error);
@@ -436,6 +491,8 @@ const Home = () => {
         const start = new Date();
         start.setHours(0, 0, 0, 0);
 
+        if (Platform.OS == "ios"){
+
         const result = await Pedometer.getStepCountAsync(start, end);
         if (result) {
           initialSteps = result.steps;
@@ -445,6 +502,7 @@ const Home = () => {
             loading: false
           }));
         }
+      }
       } catch (error) {
         console.log('Step refresh error:', error);
       }
