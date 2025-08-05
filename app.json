@@ -76,6 +76,12 @@
         "projectId": "f01e18dd-deb5-44f5-9fa4-395087680267"
       }
     },
-    "owner": "abdul1028"
+    "owner": "abdul1028",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f01e18dd-deb5-44f5-9fa4-395087680267"
+    }
   }
 }

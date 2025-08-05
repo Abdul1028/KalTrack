@@ -169,7 +169,7 @@ export async function scheduleSundayMotivation() {
       lightColor: '#32CD32', // LimeGreen
     });
   }
-
+  
   // Optional: Cancel existing Sunday motivation to avoid duplicates
   await Notifications.cancelAllScheduledNotificationsAsync();
 
