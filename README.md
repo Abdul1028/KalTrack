@@ -23,6 +23,23 @@ In the output, you'll find options to open the app in a
 - [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
 - [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
+## Download KalTrack
+
+### 📱 Android Users
+**Download the standalone app directly from Google Play Store:**
+[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.KalTrack.app)
+
+### 📱 iOS Users & Preview Mode
+You can install KalTrack in preview mode on both iOS and Android by:
+
+1. **Download the Expo Go app** from the App Store (iOS) or Google Play Store (Android)
+2. **Scan the QR code** below using the Expo Go app
+3. **Follow the prompts** to install and run the app
+
+![KalTrack QR Code](KalTrack.svg)
+
+*Note: The preview mode will run with limited functionality compared to the production version available on Google Play Store.*
+
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
 ## Get a fresh project
