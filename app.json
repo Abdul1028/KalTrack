@@ -12,12 +12,6 @@
     "icon": "./assets/images/logo.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/logo.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.KalTrack.app",
@@ -59,6 +53,14 @@
       "expo-router",
       "expo-font",
       "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
       [
         "react-native-health",
         {
